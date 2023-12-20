@@ -9,7 +9,7 @@ from langchain_core.documents import Document
 import requests
 
 from langchain_community.embeddings.openai import OpenAIEmbeddings
-from langchain_community.vectorstores.weaviate import Weaviate
+from langchain_weaviate.vectorstores import WeaviateVectorStore
 from .fake_embeddings import FakeEmbeddings
 
 logging.basicConfig(level=logging.DEBUG)
@@ -47,7 +47,7 @@ def test_similarity_search_without_metadata(
     ) -> None:
         """Test end to end construction and search without metadata."""
         texts = ["foo", "bar", "baz"]
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts,
             embedding_openai,
             weaviate_url=weaviate_url,
@@ -62,7 +62,7 @@ def test_similarity_search_with_metadata(
         """Test end to end construction and search with metadata."""
         texts = ["foo", "bar", "baz"]
         metadatas = [{"page": i} for i in range(len(texts))]
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts, embedding_openai, metadatas=metadatas, weaviate_url=weaviate_url
         )
         output = docsearch.similarity_search("foo", k=1)
@@ -74,7 +74,7 @@ def test_similarity_search_with_metadata_and_filter(
         """Test end to end construction and search with metadata."""
         texts = ["foo", "bar", "baz"]
         metadatas = [{"page": i} for i in range(len(texts))]
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts, embedding_openai, metadatas=metadatas, weaviate_url=weaviate_url
         )
         output = docsearch.similarity_search(
@@ -90,7 +90,7 @@ def test_similarity_search_with_metadata_and_additional(
         """Test end to end construction and search with metadata and additional."""
         texts = ["foo", "bar", "baz"]
         metadatas = [{"page": i} for i in range(len(texts))]
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts, embedding_openai, metadatas=metadatas, weaviate_url=weaviate_url
         )
         output = docsearch.similarity_search(
@@ -114,7 +114,7 @@ def test_similarity_search_with_uuids(
         uuids = [uuid.uuid5(uuid.NAMESPACE_DNS, "same-name") for text in texts]
 
         metadatas = [{"page": i} for i in range(len(texts))]
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts,
             embedding_openai,
             metadatas=metadatas,
@@ -131,7 +131,7 @@ def test_max_marginal_relevance_search(
         texts = ["foo", "bar", "baz"]
         metadatas = [{"page": i} for i in range(len(texts))]
 
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts, embedding_openai, metadatas=metadatas, weaviate_url=weaviate_url
         )
         # if lambda=1 the algorithm should be equivalent to standard ranking
@@ -157,7 +157,7 @@ def test_max_marginal_relevance_search_by_vector(
         texts = ["foo", "bar", "baz"]
         metadatas = [{"page": i} for i in range(len(texts))]
 
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts, embedding_openai, metadatas=metadatas, weaviate_url=weaviate_url
         )
         foo_embedding = embedding_openai.embed_query("foo")
@@ -185,7 +185,7 @@ def test_max_marginal_relevance_search_with_filter(
         texts = ["foo", "bar", "baz"]
         metadatas = [{"page": i} for i in range(len(texts))]
 
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts, embedding_openai, metadatas=metadatas, weaviate_url=weaviate_url
         )
         where_filter = {"path": ["page"], "operator": "Equal", "valueNumber": 0}
@@ -210,7 +210,7 @@ def test_add_texts_with_given_embedding(weaviate_url: str) -> None:
         texts = ["foo", "bar", "baz"]
         embedding = FakeEmbeddings()
 
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts, embedding=embedding, weaviate_url=weaviate_url
         )
 
@@ -228,7 +228,7 @@ def test_add_texts_with_given_uuids(weaviate_url: str) -> None:
         embedding = FakeEmbeddings()
         uuids = [uuid.uuid5(uuid.NAMESPACE_DNS, text) for text in texts]
 
-        docsearch = Weaviate.from_texts(
+        docsearch = WeaviateVectorStore.from_texts(
             texts,
             embedding=embedding,
             weaviate_url=weaviate_url,
