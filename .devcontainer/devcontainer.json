@@ -20,7 +20,8 @@
 		}
 	},
 	"containerEnv": {
-		"POETRY_VIRTUALENVS_IN_PROJECT": "true"
+		"POETRY_VIRTUALENVS_IN_PROJECT": "true",
+		"OPENAI_API_KEY": "<YOUR_OPENAI_API_KEY>"
 	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.

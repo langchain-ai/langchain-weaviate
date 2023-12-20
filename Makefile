@@ -6,8 +6,11 @@ all: help
 # Define a variable for the test file path.
 TEST_FILE ?= tests/unit_tests/
 
+# test:
+# 	poetry run pytest $(TEST_FILE)
+
 test:
-	poetry run pytest $(TEST_FILE)
+	pytest -n `nproc` --cov=langchain_weaviate --cov-report term-missing
 
 tests:
 	poetry run pytest $(TEST_FILE)
