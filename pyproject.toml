@@ -29,11 +29,6 @@ optional = true
 [tool.poetry.group.codespell.dependencies]
 codespell = "^2.2.0"
 
-[tool.poetry.group.test_integration]
-optional = true
-
-[tool.poetry.group.test_integration.dependencies]
-
 [tool.poetry.group.lint]
 optional = true
 
@@ -78,12 +73,5 @@ build-backend = "poetry.core.masonry.api"
 #
 # https://github.com/tophat/syrupy
 # --snapshot-warn-unused    Prints a warning on unused snapshots rather than fail the test suite.
-addopts = "--snapshot-warn-unused --strict-markers --strict-config --durations=5"
 # Registering custom markers.
 # https://docs.pytest.org/en/7.1.x/example/markers.html#registering-markers
-markers = [
-  "requires: mark tests as requiring a specific library",
-  "asyncio: mark tests as requiring asyncio",
-  "compile: mark placeholder test used to compile integration tests without running them",
-]
-asyncio_mode = "auto"
