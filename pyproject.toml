@@ -27,6 +27,7 @@ pytest-docker = "^2.0.1"
 pytest-xdist = "^3.5.0"
 openai = "^1.6.0"
 tiktoken = "^0.5.2"
+pytest-cov = "^4.1.0"
 
 [tool.poetry.group.codespell]
 optional = true
