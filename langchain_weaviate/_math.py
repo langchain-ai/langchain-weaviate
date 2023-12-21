@@ -3,6 +3,7 @@ import logging
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
+import simsimd as simd
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,6 @@ def cosine_similarity(X: Matrix, Y: Matrix) -> np.ndarray:
             f"and Y has shape {Y.shape}."
         )
     try:
-        import simsimd as simd
-
         X = np.array(X, dtype=np.float32)
         Y = np.array(Y, dtype=np.float32)
         Z = 1 - simd.cdist(X, Y, metric="cosine")

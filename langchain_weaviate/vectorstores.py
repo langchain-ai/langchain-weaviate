@@ -15,9 +15,11 @@ from typing import (
 from uuid import uuid4
 
 import numpy as np
+import weaviate
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
+from weaviate.util import get_valid_uuid
 
 from .utils import maximal_marginal_relevance
 
@@ -42,13 +44,6 @@ def _create_weaviate_client(
     api_key: Optional[str] = None,
     **kwargs: Any,
 ) -> weaviate.Client:
-    try:
-        import weaviate
-    except ImportError:
-        raise ImportError(
-            "Could not import weaviate python  package. "
-            "Please install it with `pip install weaviate-client`"
-        )
     url = url or os.environ.get("WEAVIATE_URL")
     api_key = api_key or os.environ.get("WEAVIATE_API_KEY")
     auth = weaviate.auth.AuthApiKey(api_key=api_key) if api_key else None
@@ -94,13 +89,7 @@ class WeaviateVectorStore(VectorStore):
         by_text: bool = True,
     ):
         """Initialize with Weaviate client."""
-        try:
-            import weaviate
-        except ImportError:
-            raise ImportError(
-                "Could not import weaviate python package. "
-                "Please install it with `pip install weaviate-client`."
-            )
+
         if not isinstance(client, weaviate.Client):
             raise ValueError(
                 f"client should be an instance of weaviate.Client, got {type(client)}"
@@ -443,14 +432,6 @@ class WeaviateVectorStore(VectorStore):
                     weaviate_url="http://localhost:8080"
                 )
         """
-
-        try:
-            from weaviate.util import get_valid_uuid
-        except ImportError as e:
-            raise ImportError(
-                "Could not import weaviate python  package. "
-                "Please install it with `pip install weaviate-client`"
-            ) from e
 
         client = client or _create_weaviate_client(
             url=weaviate_url,
