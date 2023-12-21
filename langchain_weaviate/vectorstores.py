@@ -15,13 +15,13 @@ from typing import (
 from uuid import uuid4
 
 import numpy as np
+import weaviate
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
+from weaviate.util import get_valid_uuid
 
 from .utils import maximal_marginal_relevance
-import weaviate
-from weaviate.util import get_valid_uuid
 
 if TYPE_CHECKING:
     import weaviate
@@ -44,7 +44,6 @@ def _create_weaviate_client(
     api_key: Optional[str] = None,
     **kwargs: Any,
 ) -> weaviate.Client:
-
     url = url or os.environ.get("WEAVIATE_URL")
     api_key = api_key or os.environ.get("WEAVIATE_API_KEY")
     auth = weaviate.auth.AuthApiKey(api_key=api_key) if api_key else None
