@@ -10,7 +10,7 @@ TEST_FILE ?= tests/unit_tests/
 # 	poetry run pytest $(TEST_FILE)
 
 test:
-	pytest -n `nproc` --cov=langchain_weaviate --cov-report term-missing
+	poetry run pytest -n `nproc` --cov=langchain_weaviate --cov-report term-missing
 
 tests:
 	poetry run pytest $(TEST_FILE)
