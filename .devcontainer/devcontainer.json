@@ -22,7 +22,7 @@
 	"containerEnv": {
 		"POETRY_VIRTUALENVS_IN_PROJECT": "true",
 		"OPENAI_API_KEY": "<YOUR_OPENAI_API_KEY>"
-	}
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -31,7 +31,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	"postCreateCommand": " poetry install --with test,dev,lint",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
