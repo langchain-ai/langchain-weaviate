@@ -6,6 +6,7 @@ from typing import Generator, Union
 
 import pytest
 import requests
+import weaviate
 from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 
@@ -258,3 +259,31 @@ def test_add_texts_with_given_uuids(weaviate_url: str, texts, embedding) -> None
     output = docsearch.similarity_search_by_vector(embedding.embed_query("foo"), k=2)
     assert output[0] == Document(page_content="foo")
     assert output[1] != Document(page_content="foo")
+
+
+def test_add_texts_with_metadata(weaviate_url: str, texts, embedding) -> None:
+    """
+    Test that the text's metadata ends up in Weaviate too
+    """
+
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding,
+        weaviate_url=weaviate_url,
+        index_name=index_name,
+    )
+
+    ids = docsearch.add_texts(["qux"], metadatas=[{"page": 1}])
+
+    expected_result = {
+        "page": 1,
+        "text": "qux",
+    }
+
+    client = weaviate.Client(weaviate_url)
+    doc = client.data_object.get_by_id(ids[0])
+    result = doc["properties"]
+
+    assert result == expected_result
