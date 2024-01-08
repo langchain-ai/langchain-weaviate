@@ -48,6 +48,16 @@ def embedding_openai():
     yield OpenAIEmbeddings()
 
 
+@pytest.fixture
+def texts():
+    return ["foo", "bar", "baz"]
+
+
+@pytest.fixture
+def embedding():
+    return FakeEmbeddings()
+
+
 def test_similarity_search_without_metadata(
     weaviate_url: str, embedding_openai: OpenAIEmbeddings
 ) -> None:
@@ -220,10 +230,7 @@ def test_max_marginal_relevance_search_with_filter(
     ]
 
 
-def test_add_texts_with_given_embedding(weaviate_url: str) -> None:
-    texts = ["foo", "bar", "baz"]
-    embedding = FakeEmbeddings()
-
+def test_add_texts_with_given_embedding(weaviate_url: str, texts, embedding) -> None:
     docsearch = WeaviateVectorStore.from_texts(
         texts, embedding=embedding, weaviate_url=weaviate_url
     )
@@ -236,9 +243,7 @@ def test_add_texts_with_given_embedding(weaviate_url: str) -> None:
     ]
 
 
-def test_add_texts_with_given_uuids(weaviate_url: str) -> None:
-    texts = ["foo", "bar", "baz"]
-    embedding = FakeEmbeddings()
+def test_add_texts_with_given_uuids(weaviate_url: str, texts, embedding) -> None:
     uuids = [uuid.uuid5(uuid.NAMESPACE_DNS, text) for text in texts]
 
     docsearch = WeaviateVectorStore.from_texts(
