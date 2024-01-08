@@ -287,3 +287,26 @@ def test_add_texts_with_metadata(weaviate_url: str, texts, embedding) -> None:
     result = doc["properties"]
 
     assert result == expected_result
+
+
+def test_add_text_with_given_id(weaviate_url: str, texts, embedding) -> None:
+    """
+    Test that the text's id ends up in Weaviate too
+    """
+
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+    doc_id = uuid.uuid4()
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding,
+        weaviate_url=weaviate_url,
+        index_name=index_name,
+    )
+
+    docsearch.add_texts(["qux"], ids=[doc_id])
+
+    client = weaviate.Client(weaviate_url)
+    doc = client.data_object.get_by_id(doc_id)
+
+    assert doc["id"] == str(doc_id)
