@@ -379,3 +379,6 @@ def test_delete(weaviate_url: str, texts: List[str], embedding: FakeEmbeddings) 
 
     assert total_docs_before_delete == len(texts)
     assert total_docs_after_delete == 0
+
+    with pytest.raises(ValueError, match="No ids provided to delete"):
+        docsearch.delete()
