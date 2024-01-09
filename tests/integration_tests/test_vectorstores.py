@@ -324,3 +324,35 @@ def test_add_text_with_given_id(weaviate_url: str, texts, embedding) -> None:
     doc = client.data_object.get_by_id(doc_id)
 
     assert doc["id"] == str(doc_id)
+
+
+def test_similarity_search_with_score(
+    weaviate_url: str, embedding_openai: OpenAIEmbeddings
+) -> None:
+    texts = ["cat", "dog"]
+    client = weaviate.Client(weaviate_url)
+
+    # create a weaviate instance without an embedding
+    docsearch = WeaviateVectorStore.from_texts(
+        texts, embedding=None, weaviate_url=weaviate_url
+    )
+
+    with pytest.raises(ValueError, match="_embedding cannot be None"):
+        docsearch.similarity_search_with_score("foo", k=1)
+
+    client.schema.delete_all()
+
+    # now create an instance with an embedding
+    docsearch = WeaviateVectorStore.from_texts(
+        texts, embedding_openai, weaviate_url=weaviate_url, by_text=False
+    )
+
+    results = docsearch.similarity_search_with_score("kitty", k=1)
+
+    assert len(results) == 1
+
+    doc, score = results[0]
+
+    assert isinstance(score, float)
+    assert score > 0
+    assert doc.page_content == "cat"

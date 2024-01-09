@@ -336,6 +336,8 @@ class WeaviateVectorStore(VectorStore):
                 .do()
             )
         else:
+            # TODO: Refactor depending on discussion in issue #12
+            #       see: https://github.com/langchain-ai/langchain-weaviate/issues/12
             result = (
                 query_obj.with_near_text(content)
                 .with_limit(k)
@@ -349,6 +351,7 @@ class WeaviateVectorStore(VectorStore):
         docs_and_scores = []
         for res in result["data"]["Get"][self._index_name]:
             text = res.pop(self._text_key)
+            # TODO: Why not use scores from weaviate?
             score = np.dot(res["_additional"]["vector"], embedded_query)
             docs_and_scores.append((Document(page_content=text, metadata=res), score))
         return docs_and_scores
