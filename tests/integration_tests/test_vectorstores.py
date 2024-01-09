@@ -2,10 +2,11 @@
 import logging
 import os
 import uuid
-from typing import Generator, Union
+from typing import Generator, List, Union
 
 import pytest
 import requests
+import weaviate
 from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 
@@ -46,6 +47,16 @@ def weaviate_url(docker_ip, docker_services):
 @pytest.fixture
 def embedding_openai():
     yield OpenAIEmbeddings()
+
+
+@pytest.fixture
+def texts():
+    return ["foo", "bar", "baz"]
+
+
+@pytest.fixture
+def embedding():
+    return FakeEmbeddings()
 
 
 def test_similarity_search_without_metadata(
@@ -135,6 +146,20 @@ def test_similarity_search_with_uuids(
     assert len(output) == 1
 
 
+def test_similarity_search_by_text(
+    weaviate_url: str, texts: List[str], embedding_openai: OpenAIEmbeddings
+) -> None:
+    """Test end to end construction and search by text."""
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts, embedding_openai, weaviate_url=weaviate_url, by_text=True
+    )
+
+    output = docsearch.similarity_search("foo", k=1)
+    assert len(output) == 1
+    assert "foo" in output[0].page_content
+
+
 def test_max_marginal_relevance_search(
     weaviate_url: str, embedding_openai: OpenAIEmbeddings
 ) -> None:
@@ -220,10 +245,7 @@ def test_max_marginal_relevance_search_with_filter(
     ]
 
 
-def test_add_texts_with_given_embedding(weaviate_url: str) -> None:
-    texts = ["foo", "bar", "baz"]
-    embedding = FakeEmbeddings()
-
+def test_add_texts_with_given_embedding(weaviate_url: str, texts, embedding) -> None:
     docsearch = WeaviateVectorStore.from_texts(
         texts, embedding=embedding, weaviate_url=weaviate_url
     )
@@ -236,9 +258,7 @@ def test_add_texts_with_given_embedding(weaviate_url: str) -> None:
     ]
 
 
-def test_add_texts_with_given_uuids(weaviate_url: str) -> None:
-    texts = ["foo", "bar", "baz"]
-    embedding = FakeEmbeddings()
+def test_add_texts_with_given_uuids(weaviate_url: str, texts, embedding) -> None:
     uuids = [uuid.uuid5(uuid.NAMESPACE_DNS, text) for text in texts]
 
     docsearch = WeaviateVectorStore.from_texts(
@@ -253,3 +273,112 @@ def test_add_texts_with_given_uuids(weaviate_url: str) -> None:
     output = docsearch.similarity_search_by_vector(embedding.embed_query("foo"), k=2)
     assert output[0] == Document(page_content="foo")
     assert output[1] != Document(page_content="foo")
+
+
+def test_add_texts_with_metadata(weaviate_url: str, texts, embedding) -> None:
+    """
+    Test that the text's metadata ends up in Weaviate too
+    """
+
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding,
+        weaviate_url=weaviate_url,
+        index_name=index_name,
+    )
+
+    ids = docsearch.add_texts(["qux"], metadatas=[{"page": 1}])
+
+    expected_result = {
+        "page": 1,
+        "text": "qux",
+    }
+
+    client = weaviate.Client(weaviate_url)
+    doc = client.data_object.get_by_id(ids[0])
+    result = doc["properties"]
+
+    assert result == expected_result
+
+
+def test_add_text_with_given_id(weaviate_url: str, texts, embedding) -> None:
+    """
+    Test that the text's id ends up in Weaviate too
+    """
+
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+    doc_id = uuid.uuid4()
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding,
+        weaviate_url=weaviate_url,
+        index_name=index_name,
+    )
+
+    docsearch.add_texts(["qux"], ids=[doc_id])
+
+    client = weaviate.Client(weaviate_url)
+    doc = client.data_object.get_by_id(doc_id)
+
+    assert doc["id"] == str(doc_id)
+
+
+def test_similarity_search_with_score(
+    weaviate_url: str, embedding_openai: OpenAIEmbeddings
+) -> None:
+    texts = ["cat", "dog"]
+    client = weaviate.Client(weaviate_url)
+
+    # create a weaviate instance without an embedding
+    docsearch = WeaviateVectorStore.from_texts(
+        texts, embedding=None, weaviate_url=weaviate_url
+    )
+
+    with pytest.raises(ValueError, match="_embedding cannot be None"):
+        docsearch.similarity_search_with_score("foo", k=1)
+
+    client.schema.delete_all()
+
+    # now create an instance with an embedding
+    docsearch = WeaviateVectorStore.from_texts(
+        texts, embedding_openai, weaviate_url=weaviate_url, by_text=False
+    )
+
+    results = docsearch.similarity_search_with_score("kitty", k=1)
+
+    assert len(results) == 1
+
+    doc, score = results[0]
+
+    assert isinstance(score, float)
+    assert score > 0
+    assert doc.page_content == "cat"
+
+
+def test_delete(weaviate_url: str, texts: List[str], embedding: FakeEmbeddings) -> None:
+    client = weaviate.Client(weaviate_url)
+    index_name = "TestDeleteFunction"
+
+    docsearch = WeaviateVectorStore(
+        client=client, index_name=index_name, text_key="text", embedding=embedding
+    )
+    docids = docsearch.add_texts(texts)
+
+    total_docs_before_delete = len(
+        client.data_object.get(class_name=index_name)["objects"]
+    )
+
+    docsearch.delete(docids)
+
+    total_docs_after_delete = len(
+        client.data_object.get(class_name=index_name)["objects"]
+    )
+
+    assert total_docs_before_delete == len(texts)
+    assert total_docs_after_delete == 0
+
+    with pytest.raises(ValueError, match="No ids provided to delete"):
+        docsearch.delete()
