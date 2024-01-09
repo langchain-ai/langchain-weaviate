@@ -356,3 +356,26 @@ def test_similarity_search_with_score(
     assert isinstance(score, float)
     assert score > 0
     assert doc.page_content == "cat"
+
+
+def test_delete(weaviate_url: str, texts: List[str], embedding: FakeEmbeddings) -> None:
+    client = weaviate.Client(weaviate_url)
+    index_name = "TestDeleteFunction"
+
+    docsearch = WeaviateVectorStore(
+        client=client, index_name=index_name, text_key="text", embedding=embedding
+    )
+    docids = docsearch.add_texts(texts)
+
+    total_docs_before_delete = len(
+        client.data_object.get(class_name=index_name)["objects"]
+    )
+
+    docsearch.delete(docids)
+
+    total_docs_after_delete = len(
+        client.data_object.get(class_name=index_name)["objects"]
+    )
+
+    assert total_docs_before_delete == len(texts)
+    assert total_docs_after_delete == 0
