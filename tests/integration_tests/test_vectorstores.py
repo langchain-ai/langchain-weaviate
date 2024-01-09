@@ -2,7 +2,7 @@
 import logging
 import os
 import uuid
-from typing import Generator, Union
+from typing import Generator, List, Union
 
 import pytest
 import requests
@@ -144,6 +144,20 @@ def test_similarity_search_with_uuids(
     )
     output = docsearch.similarity_search("foo", k=2)
     assert len(output) == 1
+
+
+def test_similarity_search_by_text(
+    weaviate_url: str, texts: List[str], embedding_openai: OpenAIEmbeddings
+) -> None:
+    """Test end to end construction and search by text."""
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts, embedding_openai, weaviate_url=weaviate_url, by_text=True
+    )
+
+    output = docsearch.similarity_search("foo", k=1)
+    assert len(output) == 1
+    assert "foo" in output[0].page_content
 
 
 def test_max_marginal_relevance_search(

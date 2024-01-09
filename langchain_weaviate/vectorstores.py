@@ -193,24 +193,8 @@ class WeaviateVectorStore(VectorStore):
         Returns:
             List of Documents most similar to the query.
         """
-        content: Dict[str, Any] = {"concepts": [query]}
-        if kwargs.get("search_distance"):
-            content["certainty"] = kwargs.get("search_distance")
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-        if kwargs.get("where_filter"):
-            query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        if kwargs.get("tenant"):
-            query_obj = query_obj.with_tenant(kwargs.get("tenant"))
-        if kwargs.get("additional"):
-            query_obj = query_obj.with_additional(kwargs.get("additional"))
-        result = query_obj.with_near_text(content).with_limit(k).do()
-        if "errors" in result:
-            raise ValueError(f"Error during query: {result['errors']}")
-        docs = []
-        for res in result["data"]["Get"][self._index_name]:
-            text = res.pop(self._text_key)
-            docs.append(Document(page_content=text, metadata=res))
-        return docs
+        embedding = self.embeddings.embed_query(query)
+        return self.similarity_search_by_vector(embedding, k, **kwargs)
 
     def similarity_search_by_vector(
         self, embedding: List[float], k: int = 4, **kwargs: Any
