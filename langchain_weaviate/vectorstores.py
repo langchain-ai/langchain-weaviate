@@ -104,6 +104,28 @@ class WeaviateVectorStore(VectorStore):
         if attributes is not None:
             self._query_attrs.extend(attributes)
 
+    def _build_query_obj(self, **kwargs):
+        """
+        Build a weaviate Get query object with the given parameters.
+        The given parameters are mapped to the corresponding methods
+        in the GetBuilder class.
+        """
+        method_map = {
+            "search_distance": "certainty",
+            "where_filter": "with_where",
+            "tenant": "with_tenant",
+            "additional": "with_additional",
+        }
+
+        query_obj = self._client.query.get(self._index_name, self._query_attrs)
+
+        for kwarg, method in method_map.items():
+            if kwargs.get(kwarg):
+                func = getattr(query_obj, method)
+                query_obj = func(kwargs.get(kwarg))
+
+        return query_obj
+
     @property
     def embeddings(self) -> Optional[Embeddings]:
         return self._embedding
@@ -199,13 +221,7 @@ class WeaviateVectorStore(VectorStore):
     ) -> List[Document]:
         """Look up similar documents by embedding vector in Weaviate."""
         vector = {"vector": embedding}
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-        if kwargs.get("where_filter"):
-            query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        if kwargs.get("tenant"):
-            query_obj = query_obj.with_tenant(kwargs.get("tenant"))
-        if kwargs.get("additional"):
-            query_obj = query_obj.with_additional(kwargs.get("additional"))
+        query_obj = self._build_query_obj(**kwargs)
         result = query_obj.with_near_vector(vector).with_limit(k).do()
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
@@ -277,11 +293,7 @@ class WeaviateVectorStore(VectorStore):
             List of Documents selected by maximal marginal relevance.
         """
         vector = {"vector": embedding}
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-        if kwargs.get("where_filter"):
-            query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        if kwargs.get("tenant"):
-            query_obj = query_obj.with_tenant(kwargs.get("tenant"))
+        query_obj = self._build_query_obj(**kwargs)
         results = (
             query_obj.with_additional("vector")
             .with_near_vector(vector)
@@ -318,11 +330,7 @@ class WeaviateVectorStore(VectorStore):
         content: Dict[str, Any] = {"concepts": [query]}
         if kwargs.get("search_distance"):
             content["certainty"] = kwargs.get("search_distance")
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-        if kwargs.get("where_filter"):
-            query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        if kwargs.get("tenant"):
-            query_obj = query_obj.with_tenant(kwargs.get("tenant"))
+        query_obj = self._build_query_obj(**kwargs)
 
         embedded_query = self._embedding.embed_query(query)
         vector = {"vector": embedded_query}
