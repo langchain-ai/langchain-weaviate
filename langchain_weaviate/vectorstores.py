@@ -180,6 +180,18 @@ class WeaviateVectorStore(VectorStore):
                 ids.append(_id)
         return ids
 
+    def _perform_search(self, query: str, k: int, **kwargs: Any) -> dict:
+        """Perform a similarity search and return the raw result."""
+        if self._embedding is None:
+            raise ValueError("_embedding cannot be None for similarity_search")
+        embedding = self._embedding.embed_query(query)
+        query_obj = self._build_query_obj(**kwargs)
+        vector = {"vector": embedding}
+        result = query_obj.with_near_vector(vector).with_limit(k).do()
+        if "errors" in result:
+            raise ValueError(f"Error during query: {result['errors']}")
+        return result
+
     def similarity_search(
         self, query: str, k: int = 4, **kwargs: Any
     ) -> List[Document]:
@@ -193,13 +205,12 @@ class WeaviateVectorStore(VectorStore):
             List of Documents most similar to the query.
         """
 
-        if self._embedding is None:
-            raise ValueError(
-                "_embedding cannot be None for similarity_search when " "_by_text=False"
-            )
-
-        embedding = self._embedding.embed_query(query)
-        return self.similarity_search_by_vector(embedding, k, **kwargs)
+        result = self._perform_search(query, k, **kwargs)
+        docs = []
+        for res in result["data"]["Get"][self._index_name]:
+            text = res.pop(self._text_key)
+            docs.append(Document(page_content=text, metadata=res))
+        return docs
 
     def similarity_search_by_text(
         self, query: str, k: int = 4, **kwargs: Any
@@ -323,23 +334,11 @@ class WeaviateVectorStore(VectorStore):
         text and cosine distance in float for each.
         Lower score represents more similarity.
         """
-        if self._embedding is None:
-            raise ValueError(
-                "_embedding cannot be None for similarity_search_with_score"
-            )
-        content: Dict[str, Any] = {"concepts": [query]}
-        if kwargs.get("search_distance"):
-            content["certainty"] = kwargs.get("search_distance")
-        query_obj = self._build_query_obj(**kwargs)
 
-        embedded_query = self._embedding.embed_query(query)
-        vector = {"vector": embedded_query}
-        result = (
-            query_obj.with_near_vector(vector)
-            .with_limit(k)
-            .with_additional("vector")
-            .do()
+        result = self._perform_search(
+            query, k, additional=["vector", "certainty"], **kwargs
         )
+        embedded_query = self._embedding.embed_query(query)
 
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
