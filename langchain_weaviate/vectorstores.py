@@ -222,21 +222,6 @@ class WeaviateVectorStore(VectorStore):
             docs.append(Document(page_content=text, metadata=res))
         return docs
 
-    def similarity_search_by_text(
-        self, query: str, k: int = 4, **kwargs: Any
-    ) -> List[Document]:
-        """Return docs most similar to query.
-
-        Args:
-            query: Text to look up documents similar to.
-            k: Number of Documents to return. Defaults to 4.
-
-        Returns:
-            List of Documents most similar to the query.
-        """
-        embedding = self.embeddings.embed_query(query)
-        return self.similarity_search_by_vector(embedding, k, **kwargs)
-
     def similarity_search_by_vector(
         self, embedding: List[float], k: int = 4, **kwargs: Any
     ) -> List[Document]:
