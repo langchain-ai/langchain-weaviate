@@ -335,10 +335,7 @@ class WeaviateVectorStore(VectorStore):
         Lower score represents more similarity.
         """
 
-        result = self._perform_search(
-            query, k, additional=["vector", "certainty"], **kwargs
-        )
-        embedded_query = self._embedding.embed_query(query)
+        result = self._perform_search(query, k, additional=["certainty"], **kwargs)
 
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
@@ -346,8 +343,7 @@ class WeaviateVectorStore(VectorStore):
         docs_and_scores = []
         for res in result["data"]["Get"][self._index_name]:
             text = res.pop(self._text_key)
-            # TODO: Why not use scores from weaviate?
-            score = np.dot(res["_additional"]["vector"], embedded_query)
+            score = res["_additional"]["certainty"]
             docs_and_scores.append((Document(page_content=text, metadata=res), score))
         return docs_and_scores
 
