@@ -170,16 +170,14 @@ class WeaviateVectorStore(VectorStore):
         Returns:
             List of Documents most similar to the query.
         """
-        if self._by_text:
-            return self.similarity_search_by_text(query, k, **kwargs)
-        else:
-            if self._embedding is None:
-                raise ValueError(
-                    "_embedding cannot be None for similarity_search when "
-                    "_by_text=False"
-                )
-            embedding = self._embedding.embed_query(query)
-            return self.similarity_search_by_vector(embedding, k, **kwargs)
+
+        if self._embedding is None:
+            raise ValueError(
+                "_embedding cannot be None for similarity_search when " "_by_text=False"
+            )
+
+        embedding = self._embedding.embed_query(query)
+        return self.similarity_search_by_vector(embedding, k, **kwargs)
 
     def similarity_search_by_text(
         self, query: str, k: int = 4, **kwargs: Any
@@ -327,23 +325,13 @@ class WeaviateVectorStore(VectorStore):
             query_obj = query_obj.with_tenant(kwargs.get("tenant"))
 
         embedded_query = self._embedding.embed_query(query)
-        if not self._by_text:
-            vector = {"vector": embedded_query}
-            result = (
-                query_obj.with_near_vector(vector)
-                .with_limit(k)
-                .with_additional("vector")
-                .do()
-            )
-        else:
-            # TODO: Refactor depending on discussion in issue #12
-            #       see: https://github.com/langchain-ai/langchain-weaviate/issues/12
-            result = (
-                query_obj.with_near_text(content)
-                .with_limit(k)
-                .with_additional("vector")
-                .do()
-            )
+        vector = {"vector": embedded_query}
+        result = (
+            query_obj.with_near_vector(vector)
+            .with_limit(k)
+            .with_additional("vector")
+            .do()
+        )
 
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
