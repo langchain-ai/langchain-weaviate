@@ -9,7 +9,10 @@ TEST_FILE ?= tests/unit_tests/
 # test:
 # 	poetry run pytest $(TEST_FILE)
 
-test:
+update-weaviate-image:
+	docker pull semitechnologies/weaviate:latest
+
+test: update-weaviate-image
 	poetry run pytest -n `nproc` --cov=langchain_weaviate --cov-report term-missing
 
 tests:
