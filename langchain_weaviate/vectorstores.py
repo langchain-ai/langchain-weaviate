@@ -111,17 +111,27 @@ class WeaviateVectorStore(VectorStore):
         in the GetBuilder class.
         """
         method_map = {
-            "where_filter": "with_where",
-            "tenant": "with_tenant",
-            "additional": "with_additional",
+            "with_where": ["where_filter"],
+            "with_tenant": ["tenant"],
+            "with_additional": ["additional"],
+            "with_limit": ["limit"],
         }
+
+        hybrid_args = ["query", "alpha", "vector", "properties", "fusion_type"]
 
         query_obj = self._client.query.get(self._index_name, self._query_attrs)
 
-        for kwarg, method in method_map.items():
-            if kwargs.get(kwarg):
+        for method, kwarg_list in method_map.items():
+            args = [kwargs.get(kwarg) for kwarg in kwarg_list if kwargs.get(kwarg)]
+            if args:
                 func = getattr(query_obj, method)
-                query_obj = func(kwargs.get(kwarg))
+                query_obj = func(*args)
+
+        hybrid_args_params_and_values = {
+            arg: kwargs.get(arg) for arg in hybrid_args if kwargs.get(arg)
+        }
+        if any(hybrid_args_params_and_values.values()):
+            query_obj = query_obj.with_hybrid(**hybrid_args_params_and_values)
 
         return query_obj
 
@@ -184,9 +194,10 @@ class WeaviateVectorStore(VectorStore):
         if self._embedding is None:
             raise ValueError("_embedding cannot be None for similarity_search")
         embedding = self._embedding.embed_query(query)
-        query_obj = self._build_query_obj(**kwargs)
-        vector = {"vector": embedding}
-        result = query_obj.with_near_vector(vector).with_limit(k).do()
+        query_obj = self._build_query_obj(
+            query=query, limit=k, vector=embedding, **kwargs
+        )
+        result = query_obj.do()
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
         return result
@@ -334,7 +345,7 @@ class WeaviateVectorStore(VectorStore):
         Lower score represents more similarity.
         """
 
-        result = self._perform_search(query, k, additional=["certainty"], **kwargs)
+        result = self._perform_search(query, k, additional=["score"], **kwargs)
 
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
@@ -342,7 +353,7 @@ class WeaviateVectorStore(VectorStore):
         docs_and_scores = []
         for res in result["data"]["Get"][self._index_name]:
             text = res.pop(self._text_key)
-            score = res["_additional"]["certainty"]
+            score = res["_additional"]["score"]
             docs_and_scores.append((Document(page_content=text, metadata=res), score))
         return docs_and_scores
 
