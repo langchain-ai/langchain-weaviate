@@ -111,7 +111,6 @@ class WeaviateVectorStore(VectorStore):
         in the GetBuilder class.
         """
         method_map = {
-            "search_distance": "certainty",
             "where_filter": "with_where",
             "tenant": "with_tenant",
             "additional": "with_additional",
