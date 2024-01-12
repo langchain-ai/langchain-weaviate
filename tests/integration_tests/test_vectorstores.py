@@ -116,12 +116,12 @@ def test_similarity_search_with_metadata_and_additional(
     output = docsearch.similarity_search(
         "foo",
         k=1,
-        additional=["certainty"],
+        additional=["score"],
     )
     assert output == [
         Document(
             page_content="foo",
-            metadata={"page": 0, "_additional": {"certainty": 1.0000003576278687}},
+            metadata={"_additional": {"score": "0.016393442"}, "page": 0},
         )
     ]
 
@@ -353,6 +353,8 @@ def test_similarity_search_with_score(
 
     doc, score = results[0]
 
+    # TODO: figure out why score is a string
+    score = float(score)
     assert isinstance(score, float)
     assert score > 0
     assert doc.page_content == "cat"

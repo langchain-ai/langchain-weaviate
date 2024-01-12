@@ -104,6 +104,37 @@ class WeaviateVectorStore(VectorStore):
         if attributes is not None:
             self._query_attrs.extend(attributes)
 
+    def _build_query_obj(self, **kwargs):
+        """
+        Build a weaviate Get query object with the given parameters.
+        The given parameters are mapped to the corresponding methods
+        in the GetBuilder class.
+        """
+        method_map = {
+            "with_where": ["where_filter"],
+            "with_tenant": ["tenant"],
+            "with_additional": ["additional"],
+            "with_limit": ["limit"],
+        }
+
+        hybrid_args = ["query", "alpha", "vector", "properties", "fusion_type"]
+
+        query_obj = self._client.query.get(self._index_name, self._query_attrs)
+
+        for method, kwarg_list in method_map.items():
+            args = [kwargs.get(kwarg) for kwarg in kwarg_list if kwargs.get(kwarg)]
+            if args:
+                func = getattr(query_obj, method)
+                query_obj = func(*args)
+
+        hybrid_args_params_and_values = {
+            arg: kwargs.get(arg) for arg in hybrid_args if kwargs.get(arg)
+        }
+        if any(hybrid_args_params_and_values.values()):
+            query_obj = query_obj.with_hybrid(**hybrid_args_params_and_values)
+
+        return query_obj
+
     @property
     def embeddings(self) -> Optional[Embeddings]:
         return self._embedding
@@ -158,6 +189,19 @@ class WeaviateVectorStore(VectorStore):
                 ids.append(_id)
         return ids
 
+    def _perform_search(self, query: str, k: int, **kwargs: Any) -> dict:
+        """Perform a similarity search and return the raw result."""
+        if self._embedding is None:
+            raise ValueError("_embedding cannot be None for similarity_search")
+        embedding = self._embedding.embed_query(query)
+        query_obj = self._build_query_obj(
+            query=query, limit=k, vector=embedding, **kwargs
+        )
+        result = query_obj.do()
+        if "errors" in result:
+            raise ValueError(f"Error during query: {result['errors']}")
+        return result
+
     def similarity_search(
         self, query: str, k: int = 4, **kwargs: Any
     ) -> List[Document]:
@@ -170,44 +214,20 @@ class WeaviateVectorStore(VectorStore):
         Returns:
             List of Documents most similar to the query.
         """
-        if self._by_text:
-            return self.similarity_search_by_text(query, k, **kwargs)
-        else:
-            if self._embedding is None:
-                raise ValueError(
-                    "_embedding cannot be None for similarity_search when "
-                    "_by_text=False"
-                )
-            embedding = self._embedding.embed_query(query)
-            return self.similarity_search_by_vector(embedding, k, **kwargs)
 
-    def similarity_search_by_text(
-        self, query: str, k: int = 4, **kwargs: Any
-    ) -> List[Document]:
-        """Return docs most similar to query.
-
-        Args:
-            query: Text to look up documents similar to.
-            k: Number of Documents to return. Defaults to 4.
-
-        Returns:
-            List of Documents most similar to the query.
-        """
-        embedding = self.embeddings.embed_query(query)
-        return self.similarity_search_by_vector(embedding, k, **kwargs)
+        result = self._perform_search(query, k, **kwargs)
+        docs = []
+        for res in result["data"]["Get"][self._index_name]:
+            text = res.pop(self._text_key)
+            docs.append(Document(page_content=text, metadata=res))
+        return docs
 
     def similarity_search_by_vector(
         self, embedding: List[float], k: int = 4, **kwargs: Any
     ) -> List[Document]:
         """Look up similar documents by embedding vector in Weaviate."""
         vector = {"vector": embedding}
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-        if kwargs.get("where_filter"):
-            query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        if kwargs.get("tenant"):
-            query_obj = query_obj.with_tenant(kwargs.get("tenant"))
-        if kwargs.get("additional"):
-            query_obj = query_obj.with_additional(kwargs.get("additional"))
+        query_obj = self._build_query_obj(**kwargs)
         result = query_obj.with_near_vector(vector).with_limit(k).do()
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
@@ -279,11 +299,7 @@ class WeaviateVectorStore(VectorStore):
             List of Documents selected by maximal marginal relevance.
         """
         vector = {"vector": embedding}
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-        if kwargs.get("where_filter"):
-            query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        if kwargs.get("tenant"):
-            query_obj = query_obj.with_tenant(kwargs.get("tenant"))
+        query_obj = self._build_query_obj(**kwargs)
         results = (
             query_obj.with_additional("vector")
             .with_near_vector(vector)
@@ -313,37 +329,8 @@ class WeaviateVectorStore(VectorStore):
         text and cosine distance in float for each.
         Lower score represents more similarity.
         """
-        if self._embedding is None:
-            raise ValueError(
-                "_embedding cannot be None for similarity_search_with_score"
-            )
-        content: Dict[str, Any] = {"concepts": [query]}
-        if kwargs.get("search_distance"):
-            content["certainty"] = kwargs.get("search_distance")
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-        if kwargs.get("where_filter"):
-            query_obj = query_obj.with_where(kwargs.get("where_filter"))
-        if kwargs.get("tenant"):
-            query_obj = query_obj.with_tenant(kwargs.get("tenant"))
 
-        embedded_query = self._embedding.embed_query(query)
-        if not self._by_text:
-            vector = {"vector": embedded_query}
-            result = (
-                query_obj.with_near_vector(vector)
-                .with_limit(k)
-                .with_additional("vector")
-                .do()
-            )
-        else:
-            # TODO: Refactor depending on discussion in issue #12
-            #       see: https://github.com/langchain-ai/langchain-weaviate/issues/12
-            result = (
-                query_obj.with_near_text(content)
-                .with_limit(k)
-                .with_additional("vector")
-                .do()
-            )
+        result = self._perform_search(query, k, additional=["score"], **kwargs)
 
         if "errors" in result:
             raise ValueError(f"Error during query: {result['errors']}")
@@ -351,8 +338,7 @@ class WeaviateVectorStore(VectorStore):
         docs_and_scores = []
         for res in result["data"]["Get"][self._index_name]:
             text = res.pop(self._text_key)
-            # TODO: Why not use scores from weaviate?
-            score = np.dot(res["_additional"]["vector"], embedded_query)
+            score = res["_additional"]["score"]
             docs_and_scores.append((Document(page_content=text, metadata=res), score))
         return docs_and_scores
 
