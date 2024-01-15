@@ -39,17 +39,6 @@ def _default_schema(index_name: str) -> Dict:
     }
 
 
-def _create_weaviate_client(
-    url: Optional[str] = None,
-    api_key: Optional[str] = None,
-    **kwargs: Any,
-) -> weaviate.Client:
-    url = url or os.environ.get("WEAVIATE_URL")
-    api_key = api_key or os.environ.get("WEAVIATE_API_KEY")
-    auth = weaviate.auth.AuthApiKey(api_key=api_key) if api_key else None
-    return weaviate.Client(url=url, auth_client_secret=auth, **kwargs)
-
-
 def _default_score_normalizer(val: float) -> float:
     return 1 - 1 / (1 + np.exp(val))
 
@@ -347,10 +336,9 @@ class WeaviateVectorStore(VectorStore):
         cls,
         texts: List[str],
         embedding: Embeddings,
+        client: weaviate.Client = None,
         metadatas: Optional[List[dict]] = None,
         *,
-        client: Optional[weaviate.Client] = None,
-        weaviate_url: Optional[str] = None,
         weaviate_api_key: Optional[str] = None,
         batch_size: Optional[int] = None,
         index_name: Optional[str] = None,
@@ -402,14 +390,10 @@ class WeaviateVectorStore(VectorStore):
                 weaviate = Weaviate.from_texts(
                     texts,
                     embeddings,
-                    weaviate_url="http://localhost:8080"
+                    client=client
                 )
         """
 
-        client = client or _create_weaviate_client(
-            url=weaviate_url,
-            api_key=weaviate_api_key,
-        )
         if batch_size:
             client.batch.configure(batch_size=batch_size)
 
