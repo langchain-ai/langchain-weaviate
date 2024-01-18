@@ -9,8 +9,10 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     Optional,
     Tuple,
+    Union,
 )
 from uuid import uuid4
 
@@ -67,7 +69,7 @@ class WeaviateVectorStore(VectorStore):
 
     def __init__(
         self,
-        client: Any,
+        client: weaviate.WeaviateClient,
         index_name: str,
         text_key: str,
         embedding: Optional[Embeddings] = None,
@@ -79,9 +81,9 @@ class WeaviateVectorStore(VectorStore):
     ):
         """Initialize with Weaviate client."""
 
-        if not isinstance(client, weaviate.Client):
+        if not isinstance(client, weaviate.WeaviateClient):
             raise ValueError(
-                f"client should be an instance of weaviate.Client, got {type(client)}"
+                f"client should be an instance of weaviate.WeaviateClient, got {type(client)}"
             )
         self._client = client
         self._index_name = index_name
@@ -92,37 +94,6 @@ class WeaviateVectorStore(VectorStore):
         self._by_text = by_text
         if attributes is not None:
             self._query_attrs.extend(attributes)
-
-    def _build_query_obj(self, **kwargs):
-        """
-        Build a weaviate Get query object with the given parameters.
-        The given parameters are mapped to the corresponding methods
-        in the GetBuilder class.
-        """
-        method_map = {
-            "with_where": ["where_filter"],
-            "with_tenant": ["tenant"],
-            "with_additional": ["additional"],
-            "with_limit": ["limit"],
-        }
-
-        hybrid_args = ["query", "alpha", "vector", "properties", "fusion_type"]
-
-        query_obj = self._client.query.get(self._index_name, self._query_attrs)
-
-        for method, kwarg_list in method_map.items():
-            args = [kwargs.get(kwarg) for kwarg in kwarg_list if kwargs.get(kwarg)]
-            if args:
-                func = getattr(query_obj, method)
-                query_obj = func(*args)
-
-        hybrid_args_params_and_values = {
-            arg: kwargs.get(arg) for arg in hybrid_args if kwargs.get(arg)
-        }
-        if any(hybrid_args_params_and_values.values()):
-            query_obj = query_obj.with_hybrid(**hybrid_args_params_and_values)
-
-        return query_obj
 
     @property
     def embeddings(self) -> Optional[Embeddings]:
@@ -168,28 +139,85 @@ class WeaviateVectorStore(VectorStore):
                 elif "ids" in kwargs:
                     _id = kwargs["ids"][i]
 
-                batch.add_data_object(
-                    data_object=data_properties,
-                    class_name=self._index_name,
+                batch.add_object(
+                    collection=self._index_name,
+                    properties=data_properties,
                     uuid=_id,
                     vector=embeddings[i] if embeddings else None,
                     tenant=kwargs.get("tenant"),
                 )
+
                 ids.append(_id)
         return ids
 
-    def _perform_search(self, query: str, k: int, **kwargs: Any) -> dict:
-        """Perform a similarity search and return the raw result."""
+    def _perform_search(
+        self,
+        query: str,
+        k: int,
+        return_score=False,
+        search_method: Literal["hybrid", "near_vector"] = "hybrid",
+        **kwargs: Any,
+    ) -> List[Union[Document, Tuple[Document, float]]]:
+        """
+        Perform a similarity search.
+
+        Parameters:
+        query (str): The query string to search for.
+        k (int): The number of results to return.
+        return_score (bool, optional): Whether to return the score along with the document. Defaults to False.
+        search_method (Literal['hybrid', 'near_vector'], optional): The search method to use. Can be 'hybrid' or 'near_vector'. Defaults to 'hybrid'.
+        **kwargs: Additional parameters to pass to the search method. These parameters will be directly passed to the underlying Weaviate client's search method.
+
+        Returns:
+        List[Union[Document, Tuple[Document, float]]]: A list of documents that match the query. If return_score is True, each document is returned as a tuple with the document and its score.
+
+        Raises:
+        ValueError: If _embedding is None or an invalid search method is provided.
+        """
         if self._embedding is None:
             raise ValueError("_embedding cannot be None for similarity_search")
-        embedding = self._embedding.embed_query(query)
-        query_obj = self._build_query_obj(
-            query=query, limit=k, vector=embedding, **kwargs
-        )
-        result = query_obj.do()
-        if "errors" in result:
-            raise ValueError(f"Error during query: {result['errors']}")
-        return result
+
+        if "return_metadata" in kwargs and "score" not in kwargs["return_metadata"]:
+            kwargs["return_metadata"].append("score")
+        else:
+            kwargs["return_metadata"] = ["score"]
+
+        try:
+            if search_method == "hybrid":
+                embedding = self._embedding.embed_query(query)
+                result = self._client.collections.get(self._index_name).query.hybrid(
+                    query=query, vector=embedding, limit=k, **kwargs
+                )
+            elif search_method == "near_vector":
+                result = self._client.collections.get(
+                    self._index_name
+                ).query.near_vector(limit=k, **kwargs)
+            else:
+                raise ValueError(f"Invalid search method: {search_method}")
+        except weaviate.exceptions.WeaviateQueryException as e:
+            raise ValueError(f"Error during query: {e}")
+
+        docs = []
+        for obj in result.objects:
+            text = obj.properties.pop(self._text_key)
+            filtered_metadata = {
+                k: v
+                for k, v in obj.metadata.__dict__.items()
+                if v is not None and k != "score"
+            }
+            merged_props = {
+                **obj.properties,
+                **filtered_metadata,
+                **({"vector": obj.vector} if obj.vector else {}),
+            }
+            doc = Document(page_content=text, metadata=merged_props)
+            if not return_score:
+                docs.append(doc)
+            else:
+                score = obj.metadata.score
+                docs.append((doc, score))
+
+        return docs
 
     def similarity_search(
         self, query: str, k: int = 4, **kwargs: Any
@@ -199,32 +227,27 @@ class WeaviateVectorStore(VectorStore):
         Args:
             query: Text to look up documents similar to.
             k: Number of Documents to return. Defaults to 4.
+            **kwargs: Additional keyword arguments will be passed to the `hybrid()` function of the weaviate client.
 
         Returns:
             List of Documents most similar to the query.
         """
 
         result = self._perform_search(query, k, **kwargs)
-        docs = []
-        for res in result["data"]["Get"][self._index_name]:
-            text = res.pop(self._text_key)
-            docs.append(Document(page_content=text, metadata=res))
-        return docs
+        return result
 
     def similarity_search_by_vector(
         self, embedding: List[float], k: int = 4, **kwargs: Any
     ) -> List[Document]:
         """Look up similar documents by embedding vector in Weaviate."""
-        vector = {"vector": embedding}
-        query_obj = self._build_query_obj(**kwargs)
-        result = query_obj.with_near_vector(vector).with_limit(k).do()
-        if "errors" in result:
-            raise ValueError(f"Error during query: {result['errors']}")
-        docs = []
-        for res in result["data"]["Get"][self._index_name]:
-            text = res.pop(self._text_key)
-            docs.append(Document(page_content=text, metadata=res))
-        return docs
+
+        return self._perform_search(
+            query=None,
+            k=k,
+            near_vector=embedding,
+            search_method="near_vector",
+            **kwargs,
+        )
 
     def max_marginal_relevance_search(
         self,
@@ -287,27 +310,28 @@ class WeaviateVectorStore(VectorStore):
         Returns:
             List of Documents selected by maximal marginal relevance.
         """
-        vector = {"vector": embedding}
-        query_obj = self._build_query_obj(**kwargs)
-        results = (
-            query_obj.with_additional("vector")
-            .with_near_vector(vector)
-            .with_limit(fetch_k)
-            .do()
+
+        results = self._perform_search(
+            query=None,
+            k=fetch_k,
+            include_vector=True,
+            near_vector=embedding,
+            search_method="near_vector",
+            **kwargs,
         )
 
-        payload = results["data"]["Get"][self._index_name]
-        embeddings = [result["_additional"]["vector"] for result in payload]
+        embeddings = [result.metadata["vector"] for result in results]
         mmr_selected = maximal_marginal_relevance(
             np.array(embedding), embeddings, k=k, lambda_mult=lambda_mult
         )
 
         docs = []
+
         for idx in mmr_selected:
-            text = payload[idx].pop(self._text_key)
-            payload[idx].pop("_additional")
-            meta = payload[idx]
-            docs.append(Document(page_content=text, metadata=meta))
+            text = results[idx].page_content
+            results[idx].metadata.pop("vector")
+            docs.append(Document(page_content=text, metadata=results[idx].metadata))
+
         return docs
 
     def similarity_search_with_score(
@@ -319,28 +343,20 @@ class WeaviateVectorStore(VectorStore):
         Lower score represents more similarity.
         """
 
-        result = self._perform_search(query, k, additional=["score"], **kwargs)
+        results = self._perform_search(query, k, return_score=True, **kwargs)
 
-        if "errors" in result:
-            raise ValueError(f"Error during query: {result['errors']}")
-
-        docs_and_scores = []
-        for res in result["data"]["Get"][self._index_name]:
-            text = res.pop(self._text_key)
-            score = res["_additional"]["score"]
-            docs_and_scores.append((Document(page_content=text, metadata=res), score))
-        return docs_and_scores
+        return results
 
     @classmethod
     def from_texts(
         cls,
         texts: List[str],
         embedding: Embeddings,
-        client: weaviate.Client = None,
+        client: weaviate.WeaviateClient = None,
         metadatas: Optional[List[dict]] = None,
         *,
         weaviate_api_key: Optional[str] = None,
-        batch_size: Optional[int] = None,
+        batch_size: Optional[int] = 25,
         index_name: Optional[str] = None,
         text_key: str = "text",
         by_text: bool = False,
@@ -394,14 +410,11 @@ class WeaviateVectorStore(VectorStore):
                 )
         """
 
-        if batch_size:
-            client.batch.configure(batch_size=batch_size)
-
         index_name = index_name or f"LangChain_{uuid4().hex}"
         schema = _default_schema(index_name)
         # check whether the index already exists
-        if not client.schema.exists(index_name):
-            client.schema.create_class(schema)
+        if not client.collections.exists(index_name):
+            client.collections.create_from_dict(schema)
 
         embeddings = embedding.embed_documents(texts) if embedding else None
         attributes = list(metadatas[0].keys()) if metadatas else None
@@ -430,13 +443,13 @@ class WeaviateVectorStore(VectorStore):
                 # like text2vec-contextionary for example
                 params = {
                     "uuid": _id,
-                    "data_object": data_properties,
-                    "class_name": index_name,
+                    "properties": data_properties,
+                    "collection": index_name,
                 }
                 if embeddings is not None:
                     params["vector"] = embeddings[i]
 
-                batch.add_data_object(**params)
+                batch.add_object(**params)
 
             batch.flush()
 
@@ -463,4 +476,4 @@ class WeaviateVectorStore(VectorStore):
 
         # TODO: Check if this can be done in bulk
         for id in ids:
-            self._client.data_object.delete(uuid=id)
+            self._client.collections.get(self._index_name).data.delete_by_id(id)
