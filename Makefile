@@ -6,6 +6,8 @@ all: help
 # Define a variable for the test file path.
 TEST_FILE ?= tests/unit_tests/
 
+integration_tests: TEST_FILE=tests/integration_tests/
+
 # test:
 # 	poetry run pytest $(TEST_FILE)
 
@@ -15,7 +17,7 @@ update-weaviate-image:
 test: update-weaviate-image
 	poetry run pytest -n `nproc` --cov=langchain_weaviate --cov-report term-missing
 
-tests:
+tests integration_tests:
 	poetry run pytest $(TEST_FILE)
 
 
