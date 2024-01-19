@@ -50,6 +50,12 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.27.1"
 
+[tool.poetry.group.test_integration]
+optional = true
+
+[tool.poetry.group.test_integration.dependencies]
+langchain-openai = ">=0.0.3,<0.1"
+
 [tool.ruff]
 select = [
   "E",  # pycodestyle

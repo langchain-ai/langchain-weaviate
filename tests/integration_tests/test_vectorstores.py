@@ -7,8 +7,8 @@ from typing import Generator, List, Union
 import pytest
 import requests
 import weaviate
-from langchain_community.embeddings.openai import OpenAIEmbeddings
 from langchain_core.documents import Document
+from langchain_openai import OpenAIEmbeddings
 
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 
