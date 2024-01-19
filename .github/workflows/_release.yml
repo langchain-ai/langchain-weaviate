@@ -10,8 +10,7 @@ env:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/master'
-    environment: Scheduled testing
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     outputs:
@@ -153,14 +152,7 @@ jobs:
 
       - name: Run integration tests
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          TOGETHER_API_KEY: ${{ secrets.TOGETHER_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-          GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SEARCH_API_KEY }}
-          GOOGLE_CSE_ID: ${{ secrets.GOOGLE_CSE_ID }}
         run: make integration_tests
         working-directory: .
 
