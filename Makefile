@@ -1,4 +1,4 @@
-.PHONY: all format lint test tests integration_tests docker_tests help extended_tests
+.PHONY: all format lint test tests integration_tests docker_tests help extended_tests update-weaviate-image
 
 # Default target executed when no arguments are given to make.
 all: help
@@ -10,7 +10,24 @@ TEST_FILE ?= tests/unit_tests/
 # 	poetry run pytest $(TEST_FILE)
 
 update-weaviate-image:
-	docker pull semitechnologies/weaviate:latest
+	$(eval DOCKER_COMPOSE_FILE := tests/docker-compose.yml)
+
+	@echo "Fetching the latest Weaviate version..."
+	$(eval LATEST_VERSION := $(shell curl -s https://api.github.com/repos/weaviate/weaviate/releases/latest | jq -r '.tag_name | ltrimstr("v")'))
+	@echo "Latest Weaviate version fetched: $(LATEST_VERSION)"
+	
+	$(eval CURRENT_VERSION := $(shell grep "semitechnologies/weaviate:" $(DOCKER_COMPOSE_FILE) | sed -E 's/.*semitechnologies\/weaviate:(.*)/\1/'))
+
+	@if [ "$(CURRENT_VERSION)" != "$(LATEST_VERSION)" ]; then \
+		echo "Updating Weaviate version from $(CURRENT_VERSION) to $(LATEST_VERSION)..."; \
+		if sed -i "s|semitechnologies/weaviate:$(CURRENT_VERSION)|semitechnologies/weaviate:$(LATEST_VERSION)|" $(DOCKER_COMPOSE_FILE); then \
+			echo "Update successful. Weaviate version is now $(LATEST_VERSION)"; \
+		else \
+			echo "Update failed." >&2; \
+		fi \
+	else \
+		echo "No update required. Current Weaviate version is already $(LATEST_VERSION)"; \
+	fi
 
 test: update-weaviate-image
 	poetry run pytest -n `nproc` --cov=langchain_weaviate --cov-report term-missing
