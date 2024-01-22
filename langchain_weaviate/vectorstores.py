@@ -478,4 +478,6 @@ class WeaviateVectorStore(VectorStore):
         if ids is None:
             raise ValueError("No ids provided to delete.")
 
-        id_filter = weaviate.classes.Filter.by_id().contains_any(ids)
+        # TODO: Check if this can be done in bulk
+        for id in ids:
+            self._client.collections.get(self._index_name).data.delete_by_id(id)
