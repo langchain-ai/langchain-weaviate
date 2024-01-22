@@ -370,8 +370,7 @@ def test_similarity_search_with_score(
 
     doc, score = results[0]
 
-    # TODO: figure out why score is a string
-    score = float(score)
+
     assert isinstance(score, float)
     assert score > 0
     assert doc.page_content == "cat"
