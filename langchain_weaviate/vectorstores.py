@@ -42,6 +42,10 @@ def _default_schema(index_name: str) -> Dict:
 
 
 def _default_score_normalizer(val: float) -> float:
+    # prevent overflow
+    # use 709 because that's the largest exponent that doesn't overflow
+    # use -709 because that's the smallest exponent that doesn't underflow
+    val = np.clip(val, -709, 709) 
     return 1 - 1 / (1 + np.exp(val))
 
 
