@@ -31,7 +31,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": " poetry install --with test,dev,lint",
+	"postCreateCommand": " poetry install --with test,dev,lint,test_integration",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
