@@ -359,8 +359,6 @@ class WeaviateVectorStore(VectorStore):
         client: weaviate.WeaviateClient = None,
         metadatas: Optional[List[dict]] = None,
         *,
-        weaviate_api_key: Optional[str] = None,
-        batch_size: Optional[int] = 25,
         index_name: Optional[str] = None,
         text_key: str = "text",
         by_text: bool = False,
@@ -383,14 +381,6 @@ class WeaviateVectorStore(VectorStore):
             embedding: Text embedding model to use.
             metadatas: Metadata associated with each text.
             client: weaviate.Client to use.
-            weaviate_url: The Weaviate URL. If using Weaviate Cloud Services get it
-                from the ``Details`` tab. Can be passed in as a named param or by
-                setting the environment variable ``WEAVIATE_URL``. Should not be
-                specified if client is provided.
-            weaviate_api_key: The Weaviate API key. If enabled and using Weaviate Cloud
-                Services, get it from ``Details`` tab. Can be passed in as a named param
-                or by setting the environment variable ``WEAVIATE_API_KEY``. Should
-                not be specified if client is provided.
             batch_size: Size of batch operations.
             index_name: Index name.
             text_key: Key to use for uploading/retrieving text to/from vectorstore.
