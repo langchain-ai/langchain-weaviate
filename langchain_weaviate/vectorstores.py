@@ -90,7 +90,7 @@ class WeaviateVectorStore(VectorStore):
                 f"client should be an instance of weaviate.WeaviateClient, got {type(client)}"
             )
         self._client = client
-        self._index_name = index_name
+        self._index_name = index_name or f"LangChain_{uuid4().hex}"
         self._embedding = embedding
         self._text_key = text_key
         self._query_attrs = [self._text_key]
@@ -98,6 +98,11 @@ class WeaviateVectorStore(VectorStore):
         self._by_text = by_text
         if attributes is not None:
             self._query_attrs.extend(attributes)
+
+        schema = _default_schema(self._index_name)
+        # check whether the index already exists
+        if not client.collections.exists(self._index_name):
+            client.collections.create_from_dict(schema)
 
     @property
     def embeddings(self) -> Optional[Embeddings]:
@@ -404,50 +409,9 @@ class WeaviateVectorStore(VectorStore):
                 )
         """
 
-        index_name = index_name or f"LangChain_{uuid4().hex}"
-        schema = _default_schema(index_name)
-        # check whether the index already exists
-        if not client.collections.exists(index_name):
-            client.collections.create_from_dict(schema)
-
-        embeddings = embedding.embed_documents(texts) if embedding else None
         attributes = list(metadatas[0].keys()) if metadatas else None
 
-        # If the UUID of one of the objects already exists
-        # then the existing object will be replaced by the new object.
-        if "uuids" in kwargs:
-            uuids = kwargs.pop("uuids")
-        else:
-            uuids = [get_valid_uuid(uuid4()) for _ in range(len(texts))]
-
-        with client.batch as batch:
-            for i, text in enumerate(texts):
-                data_properties = {
-                    text_key: text,
-                }
-                if metadatas is not None:
-                    for key in metadatas[i].keys():
-                        data_properties[key] = metadatas[i][key]
-
-                _id = uuids[i]
-
-                # if an embedding strategy is not provided, we let
-                # weaviate create the embedding. Note that this will only
-                # work if weaviate has been installed with a vectorizer module
-                # like text2vec-contextionary for example
-                params = {
-                    "uuid": _id,
-                    "properties": data_properties,
-                    "collection": index_name,
-                }
-                if embeddings is not None:
-                    params["vector"] = embeddings[i]
-
-                batch.add_object(**params)
-
-            batch.flush()
-
-        return cls(
+        weaviate_vector_store = cls(
             client,
             index_name,
             text_key,
@@ -455,8 +419,11 @@ class WeaviateVectorStore(VectorStore):
             attributes=attributes,
             relevance_score_fn=relevance_score_fn,
             by_text=by_text,
-            **kwargs,
         )
+
+        weaviate_vector_store.add_texts(texts, metadatas, **kwargs)
+
+        return weaviate_vector_store
 
     def delete(self, ids: Optional[List[str]] = None, **kwargs: Any) -> None:
         """Delete by vector IDs.
