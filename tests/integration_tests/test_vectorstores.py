@@ -416,7 +416,7 @@ def test_enable_multi_tenancy(
     weaviate_client: weaviate.WeaviateClient,
     embedding: FakeEmbeddings,
 ) -> None:
-    index_name = "TestMultiTenancy"
+    index_name = f"Index_{uuid.uuid4().hex}"
 
     _ = WeaviateVectorStore(
         client=weaviate_client,
