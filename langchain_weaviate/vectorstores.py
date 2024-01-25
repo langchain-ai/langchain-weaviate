@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 import os
 from typing import (
     TYPE_CHECKING,
@@ -27,6 +28,18 @@ from .utils import maximal_marginal_relevance
 
 if TYPE_CHECKING:
     import weaviate
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler()
+formatter = logging.Formatter(
+    "%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%b-%d %I:%M %p"
+)
+handler.setFormatter(formatter)
+
+logger.addHandler(handler)
 
 
 def _default_schema(index_name: str) -> Dict:
