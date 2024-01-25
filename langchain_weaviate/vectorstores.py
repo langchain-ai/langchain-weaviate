@@ -420,9 +420,9 @@ class WeaviateVectorStore(VectorStore):
         Args:
             texts: Texts to add to vector store.
             embedding: Text embedding model to use.
-            metadatas: Metadata associated with each text.
             client: weaviate.Client to use.
-            batch_size: Size of batch operations.
+            metadatas: Metadata associated with each text.
+            tenant: The tenant name. Defaults to None.
             index_name: Index name.
             text_key: Key to use for uploading/retrieving text to/from vectorstore.
             by_text: Whether to search by text or by embedding.
