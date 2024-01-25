@@ -143,10 +143,20 @@ class WeaviateVectorStore(VectorStore):
         self,
         texts: Iterable[str],
         metadatas: Optional[List[dict]] = None,
+        tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[str]:
         """Upload texts with metadata (properties) to Weaviate."""
         from weaviate.util import get_valid_uuid
+
+        if tenant and not self._does_tenant_exist(tenant):
+            logger.info(
+                f"Tenant {tenant} does not exist in index {self._index_name}. Creating tenant."
+            )
+            tenant_objs = [weaviate.classes.Tenant(name=tenant)]
+            self._client.collections.get(self._index_name).tenants.create(
+                tenants=tenant_objs
+            )
 
         ids = []
         embeddings: Optional[List[List[float]]] = None
@@ -177,7 +187,7 @@ class WeaviateVectorStore(VectorStore):
                     properties=data_properties,
                     uuid=_id,
                     vector=embeddings[i] if embeddings else None,
-                    tenant=kwargs.get("tenant"),
+                    tenant=tenant,
                 )
 
                 ids.append(_id)
@@ -387,6 +397,7 @@ class WeaviateVectorStore(VectorStore):
         embedding: Embeddings,
         client: weaviate.WeaviateClient = None,
         metadatas: Optional[List[dict]] = None,
+        tenant: Optional[str] = None,
         *,
         index_name: Optional[str] = None,
         text_key: str = "text",
@@ -445,7 +456,7 @@ class WeaviateVectorStore(VectorStore):
             by_text=by_text,
         )
 
-        weaviate_vector_store.add_texts(texts, metadatas, **kwargs)
+        weaviate_vector_store.add_texts(texts, metadatas, tenant=tenant, **kwargs)
 
         return weaviate_vector_store
 

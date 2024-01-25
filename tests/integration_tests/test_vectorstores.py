@@ -464,3 +464,50 @@ def test_tenant_exists(
 
     with pytest.raises(AssertionError, match="Cannot check for tenant existence"):
         docsearch_no_mt._does_tenant_exist(tenant_name)
+
+
+def test_add_texts_with_multi_tenancy(
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
+    caplog,
+) -> None:
+    index_name = "TestMultiTenancy"
+    tenant_name = "Foo"
+    create_tenant_log_msg = f"Tenant {tenant_name} does not exist in index {index_name}"
+
+    docsearch = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=True,
+    )
+
+    assert tenant_name not in weaviate_client.collections.get(index_name).tenants.get()
+
+    with caplog.at_level(logging.INFO):
+        docsearch.add_texts(texts, tenant=tenant_name)
+        assert create_tenant_log_msg in caplog.text
+
+    caplog.clear()
+
+    assert tenant_name in weaviate_client.collections.get(index_name).tenants.get()
+
+    assert weaviate_client.collections.get(index_name).with_tenant(
+        tenant_name
+    ).aggregate.over_all(total_count=True).total_count == len(texts)
+
+    # index again
+    # this should not create a new tenant
+    with caplog.at_level(logging.INFO):
+        docsearch.add_texts(texts, tenant=tenant_name)
+        assert create_tenant_log_msg not in caplog.text
+
+    assert (
+        weaviate_client.collections.get(index_name)
+        .with_tenant(tenant_name)
+        .aggregate.over_all(total_count=True)
+        .total_count
+        == len(texts) * 2
+    )
