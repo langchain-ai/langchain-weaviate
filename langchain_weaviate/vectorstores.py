@@ -501,13 +501,16 @@ class WeaviateVectorStore(VectorStore):
         Args:
             tenant: The tenant name. Defaults to None.
         """
-        collection = self._client.collections.get(self._index_name)
-        if tenant is not None:
-            assert (
-                self._multi_tenancy_enabled
-            ), "Cannot use tenant context when multi-tenancy is not enabled"
-            collection = collection.with_tenant(tenant)
+
+        if tenant is not None and not self._multi_tenancy_enabled:
+            raise ValueError(
+                "Cannot use tenant context when multi-tenancy is not enabled"
+            )
+
+        if tenant is None and self._multi_tenancy_enabled:
+            raise ValueError("Must use tenant context when multi-tenancy is enabled")
+
         try:
-            yield collection
+            yield self._collection.with_tenant(tenant)
         finally:
             pass
