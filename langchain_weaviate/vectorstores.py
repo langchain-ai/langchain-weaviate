@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 import logging
 import os
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -95,6 +97,7 @@ class WeaviateVectorStore(VectorStore):
             Callable[[float], float]
         ] = _default_score_normalizer,
         by_text: bool = True,
+        use_multi_tenancy: bool = False,
     ):
         """Initialize with Weaviate client."""
 
@@ -113,9 +116,20 @@ class WeaviateVectorStore(VectorStore):
             self._query_attrs.extend(attributes)
 
         schema = _default_schema(self._index_name)
+        schema["MultiTenancyConfig"] = {"enabled": use_multi_tenancy}
+
         # check whether the index already exists
         if not client.collections.exists(self._index_name):
             client.collections.create_from_dict(schema)
+
+        # store collection for convenience (does not actually send a request to weaviate)
+        self._collection = client.collections.get(self._index_name)
+
+        # store this setting so we don't have to send a request to weaviate
+        # every time we want to do a CRUD operation
+        self._multi_tenancy_enabled = self._collection.config.get(
+            simple=False
+        ).multi_tenancy_config.enabled
 
     @property
     def embeddings(self) -> Optional[Embeddings]:
@@ -132,10 +146,18 @@ class WeaviateVectorStore(VectorStore):
         self,
         texts: Iterable[str],
         metadatas: Optional[List[dict]] = None,
+        tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[str]:
         """Upload texts with metadata (properties) to Weaviate."""
         from weaviate.util import get_valid_uuid
+
+        if tenant and not self._does_tenant_exist(tenant):
+            logger.info(
+                f"Tenant {tenant} does not exist in index {self._index_name}. Creating tenant."
+            )
+            tenant_objs = [weaviate.classes.Tenant(name=tenant)]
+            self._collection.tenants.create(tenants=tenant_objs)
 
         ids = []
         embeddings: Optional[List[List[float]]] = None
@@ -166,7 +188,7 @@ class WeaviateVectorStore(VectorStore):
                     properties=data_properties,
                     uuid=_id,
                     vector=embeddings[i] if embeddings else None,
-                    tenant=kwargs.get("tenant"),
+                    tenant=tenant,
                 )
 
                 ids.append(_id)
@@ -178,6 +200,7 @@ class WeaviateVectorStore(VectorStore):
         k: int,
         return_score=False,
         search_method: Literal["hybrid", "near_vector"] = "hybrid",
+        tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[Union[Document, Tuple[Document, float]]]:
         """
@@ -188,6 +211,7 @@ class WeaviateVectorStore(VectorStore):
         k (int): The number of results to return.
         return_score (bool, optional): Whether to return the score along with the document. Defaults to False.
         search_method (Literal['hybrid', 'near_vector'], optional): The search method to use. Can be 'hybrid' or 'near_vector'. Defaults to 'hybrid'.
+        tenant (Optional[str], optional): The tenant name. Defaults to None.
         **kwargs: Additional parameters to pass to the search method. These parameters will be directly passed to the underlying Weaviate client's search method.
 
         Returns:
@@ -204,20 +228,19 @@ class WeaviateVectorStore(VectorStore):
         else:
             kwargs["return_metadata"] = ["score"]
 
-        try:
-            if search_method == "hybrid":
-                embedding = self._embedding.embed_query(query)
-                result = self._client.collections.get(self._index_name).query.hybrid(
-                    query=query, vector=embedding, limit=k, **kwargs
-                )
-            elif search_method == "near_vector":
-                result = self._client.collections.get(
-                    self._index_name
-                ).query.near_vector(limit=k, **kwargs)
-            else:
-                raise ValueError(f"Invalid search method: {search_method}")
-        except weaviate.exceptions.WeaviateQueryException as e:
-            raise ValueError(f"Error during query: {e}")
+        with self._tenant_context(tenant) as collection:
+            try:
+                if search_method == "hybrid":
+                    embedding = self._embedding.embed_query(query)
+                    result = collection.query.hybrid(
+                        query=query, vector=embedding, limit=k, **kwargs
+                    )
+                elif search_method == "near_vector":
+                    result = collection.query.near_vector(limit=k, **kwargs)
+                else:
+                    raise ValueError(f"Invalid search method: {search_method}")
+            except weaviate.exceptions.WeaviateQueryException as e:
+                raise ValueError(f"Error during query: {e}")
 
         docs = []
         for obj in result.objects:
@@ -376,6 +399,7 @@ class WeaviateVectorStore(VectorStore):
         embedding: Embeddings,
         client: weaviate.WeaviateClient = None,
         metadatas: Optional[List[dict]] = None,
+        tenant: Optional[str] = None,
         *,
         index_name: Optional[str] = None,
         text_key: str = "text",
@@ -397,9 +421,9 @@ class WeaviateVectorStore(VectorStore):
         Args:
             texts: Texts to add to vector store.
             embedding: Text embedding model to use.
-            metadatas: Metadata associated with each text.
             client: weaviate.Client to use.
-            batch_size: Size of batch operations.
+            metadatas: Metadata associated with each text.
+            tenant: The tenant name. Defaults to None.
             index_name: Index name.
             text_key: Key to use for uploading/retrieving text to/from vectorstore.
             by_text: Whether to search by text or by embedding.
@@ -432,21 +456,62 @@ class WeaviateVectorStore(VectorStore):
             attributes=attributes,
             relevance_score_fn=relevance_score_fn,
             by_text=by_text,
+            use_multi_tenancy=tenant is not None,
         )
 
-        weaviate_vector_store.add_texts(texts, metadatas, **kwargs)
+        weaviate_vector_store.add_texts(texts, metadatas, tenant=tenant, **kwargs)
 
         return weaviate_vector_store
 
-    def delete(self, ids: Optional[List[str]] = None, **kwargs: Any) -> None:
+    def delete(
+        self,
+        ids: Optional[List[str]] = None,
+        tenant: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
         """Delete by vector IDs.
 
         Args:
             ids: List of ids to delete.
+            tenant: The tenant name. Defaults to None.
         """
 
         if ids is None:
             raise ValueError("No ids provided to delete.")
 
         id_filter = weaviate.classes.Filter.by_id().contains_any(ids)
-        self._client.collections.get(self._index_name).data.delete_many(id_filter)
+
+        with self._tenant_context(tenant) as collection:
+            collection.data.delete_many(where=id_filter)
+
+    def _does_tenant_exist(self, tenant: str) -> bool:
+        """Check if tenant exists in Weaviate."""
+        assert (
+            self._multi_tenancy_enabled
+        ), "Cannot check for tenant existence when multi-tenancy is not enabled"
+        tenants = self._collection.tenants.get()
+
+        return tenant in tenants
+
+    @contextmanager
+    def _tenant_context(
+        self, tenant: Optional[str] = None
+    ) -> Generator[weaviate.collections.Collection, None, None]:
+        """Context manager for handling tenants.
+
+        Args:
+            tenant: The tenant name. Defaults to None.
+        """
+
+        if tenant is not None and not self._multi_tenancy_enabled:
+            raise ValueError(
+                "Cannot use tenant context when multi-tenancy is not enabled"
+            )
+
+        if tenant is None and self._multi_tenancy_enabled:
+            raise ValueError("Must use tenant context when multi-tenancy is enabled")
+
+        try:
+            yield self._collection.with_tenant(tenant)
+        finally:
+            pass

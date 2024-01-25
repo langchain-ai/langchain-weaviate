@@ -375,30 +375,38 @@ def test_similarity_search_with_score(
     assert doc.page_content == "cat"
 
 
+@pytest.mark.parametrize(
+    "use_multi_tenancy, tenant", [(True, "TestTenant"), (False, None)]
+)
 def test_delete(
     weaviate_client: weaviate.WeaviateClient,
     texts: List[str],
     embedding: FakeEmbeddings,
+    use_multi_tenancy: bool,
+    tenant: Union[str, None],
 ) -> None:
-    index_name = "TestDeleteFunction"
+    index_name = f"Index_{uuid.uuid4().hex}"
 
     docsearch = WeaviateVectorStore(
         client=weaviate_client,
         index_name=index_name,
         text_key="text",
         embedding=embedding,
+        use_multi_tenancy=use_multi_tenancy,
     )
-    docids = docsearch.add_texts(texts)
+    docids = docsearch.add_texts(texts, tenant=tenant)
 
     total_docs_before_delete = (
         weaviate_client.collections.get(index_name)
+        .with_tenant(tenant)
         .aggregate.over_all(total_count=True)
         .total_count
     )
-    docsearch.delete(docids)
+    docsearch.delete(docids, tenant=tenant)
 
     total_docs_after_delete = (
         weaviate_client.collections.get(index_name)
+        .with_tenant(tenant)
         .aggregate.over_all(total_count=True)
         .total_count
     )
@@ -408,3 +416,174 @@ def test_delete(
 
     with pytest.raises(ValueError, match="No ids provided to delete"):
         docsearch.delete()
+
+
+@pytest.mark.parametrize("use_multi_tenancy", [True, False])
+def test_enable_multi_tenancy(
+    use_multi_tenancy,
+    weaviate_client: weaviate.WeaviateClient,
+    embedding: FakeEmbeddings,
+) -> None:
+    index_name = f"Index_{uuid.uuid4().hex}"
+
+    _ = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=use_multi_tenancy,
+    )
+
+    schema = weaviate_client.collections.get(index_name).config.get(simple=False)
+    assert schema.multi_tenancy_config.enabled == use_multi_tenancy
+
+
+def test_tenant_exists(
+    weaviate_client: weaviate.WeaviateClient,
+    embedding: FakeEmbeddings,
+) -> None:
+    index_name = "TestTenant"
+    tenant_name = "Foo"
+    tenant = weaviate.classes.Tenant(name=tenant_name)
+
+    # a collection with mt enabled
+    docsearch_with_mt = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=True,
+    )
+
+    assert not docsearch_with_mt._does_tenant_exist(tenant_name)
+
+    weaviate_client.collections.get(index_name).tenants.create([tenant])
+
+    assert docsearch_with_mt._does_tenant_exist(tenant_name)
+
+    # make another collection without mt enabled
+    docsearch_no_mt = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name="Bar",
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=False,
+    )
+
+    with pytest.raises(AssertionError, match="Cannot check for tenant existence"):
+        docsearch_no_mt._does_tenant_exist(tenant_name)
+
+
+def test_add_texts_with_multi_tenancy(
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
+    caplog,
+) -> None:
+    index_name = "TestMultiTenancy"
+    tenant_name = "Foo"
+    create_tenant_log_msg = f"Tenant {tenant_name} does not exist in index {index_name}"
+
+    docsearch = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=True,
+    )
+
+    assert tenant_name not in weaviate_client.collections.get(index_name).tenants.get()
+
+    with caplog.at_level(logging.INFO):
+        docsearch.add_texts(texts, tenant=tenant_name)
+        assert create_tenant_log_msg in caplog.text
+
+    caplog.clear()
+
+    assert tenant_name in weaviate_client.collections.get(index_name).tenants.get()
+
+    assert weaviate_client.collections.get(index_name).with_tenant(
+        tenant_name
+    ).aggregate.over_all(total_count=True).total_count == len(texts)
+
+    # index again
+    # this should not create a new tenant
+    with caplog.at_level(logging.INFO):
+        docsearch.add_texts(texts, tenant=tenant_name)
+        assert create_tenant_log_msg not in caplog.text
+
+    assert (
+        weaviate_client.collections.get(index_name)
+        .with_tenant(tenant_name)
+        .aggregate.over_all(total_count=True)
+        .total_count
+        == len(texts) * 2
+    )
+
+
+@pytest.mark.parametrize(
+    "use_multi_tenancy, tenant_name", [(True, "Foo"), (False, None)]
+)
+def test_simple_from_texts(
+    use_multi_tenancy,
+    tenant_name,
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
+) -> None:
+    index_name = f"Index_{uuid.uuid4().hex}"
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding,
+        client=weaviate_client,
+        index_name=index_name,
+        tenant=tenant_name,
+    )
+
+    assert docsearch._multi_tenancy_enabled == use_multi_tenancy
+
+
+def test_search_with_multi_tenancy(
+    weaviate_client: weaviate.WeaviateClient, texts: List[str], embedding_openai
+) -> None:
+    index_name = f"Index_{uuid.uuid4().hex}"
+    tenant_name = "Foo"
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding_openai,
+        client=weaviate_client,
+        index_name=index_name,
+        tenant=tenant_name,
+    )
+
+    # Note: we only test MT with similarity_search because all public search methods
+    # in VectorStore takes kwargs to pass the tenant name, and internally calls _perform_search to
+    # validate and run the search query
+
+    # search without tenant with MT enabled
+    with pytest.raises(
+        ValueError, match="Must use tenant context when multi-tenancy is enabled"
+    ):
+        docsearch.similarity_search("foo", k=1)
+
+    # search with tenant with MT enabled
+    docsearch.similarity_search("foo", k=1, tenant=tenant_name)
+
+    # search with tenant with MT disabled
+    docsearch._multi_tenancy_enabled = (
+        False  # doesn't actually do anything to weaviate's schema
+    )
+
+    with pytest.raises(
+        ValueError, match="Cannot use tenant context when multi-tenancy is not enabled"
+    ):
+        docsearch.similarity_search("foo", k=1, tenant=tenant_name)
+
+    # search without tenant with MT disabled
+    # weaviate will throw an error because MT is still enabled and we didn't pass a tenant
+    with pytest.raises(
+        ValueError, match="has multi-tenancy enabled, but request was without tenant"
+    ):
+        docsearch.similarity_search("foo", k=1)
