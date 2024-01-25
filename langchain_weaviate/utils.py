@@ -1,10 +1,9 @@
 """Utility functions for working with vectors and vectorstores."""
 
 from enum import Enum
-from typing import List, Tuple, Type
+from typing import List
 
 import numpy as np
-from langchain_core.documents import Document
 
 from ._math import cosine_similarity
 

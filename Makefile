@@ -59,7 +59,7 @@ lint lint_diff lint_package lint_tests:
 
 format format_diff:
 	poetry run ruff format $(PYTHON_FILES)
-	poetry run ruff --select I --fix $(PYTHON_FILES)
+	poetry run ruff --fix $(PYTHON_FILES)
 
 spell_check:
 	poetry run codespell --toml pyproject.toml
