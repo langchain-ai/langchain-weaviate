@@ -120,13 +120,14 @@ class WeaviateVectorStore(VectorStore):
         if not client.collections.exists(self._index_name):
             client.collections.create_from_dict(schema)
 
+        # store collection because .get() sends a request to weaviate
+        self._collection = client.collections.get(self._index_name)
+
         # store this setting so we don't have to send a request to weaviate
         # every time we want to do a CRUD operation
-        self._multi_tenancy_enabled = (
-            self._client.collections.get(self._index_name)
-            .config.get(simple=False)
-            .multi_tenancy_config.enabled
-        )
+        self._multi_tenancy_enabled = self._collection.config.get(
+            simple=False
+        ).multi_tenancy_config.enabled
 
     @property
     def embeddings(self) -> Optional[Embeddings]:
@@ -154,9 +155,7 @@ class WeaviateVectorStore(VectorStore):
                 f"Tenant {tenant} does not exist in index {self._index_name}. Creating tenant."
             )
             tenant_objs = [weaviate.classes.Tenant(name=tenant)]
-            self._client.collections.get(self._index_name).tenants.create(
-                tenants=tenant_objs
-            )
+            self._collection.tenants.create(tenants=tenant_objs)
 
         ids = []
         embeddings: Optional[List[List[float]]] = None
@@ -473,11 +472,9 @@ class WeaviateVectorStore(VectorStore):
         id_filter = weaviate.classes.Filter.by_id().contains_any(ids)
     def _does_tenant_exist(self, tenant: str) -> bool:
         """Check if tenant exists in Weaviate."""
-        collection = self._client.collections.get(self._index_name)
-
         assert (
             self._multi_tenancy_enabled
         ), "Cannot check for tenant existence when multi-tenancy is not enabled"
-        tenants = collection.tenants.get()
+        tenants = self._collection.tenants.get()
 
         return tenant in tenants
