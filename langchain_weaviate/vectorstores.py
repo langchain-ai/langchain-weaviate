@@ -120,7 +120,7 @@ class WeaviateVectorStore(VectorStore):
         if not client.collections.exists(self._index_name):
             client.collections.create_from_dict(schema)
 
-        # store this setting so we don't have to send a request to waviate 
+        # store this setting so we don't have to send a request to weaviate
         # every time we want to do a CRUD operation
         self._multi_tenancy_enabled = (
             self._client.collections.get(self._index_name)
