@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import logging
-import os
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import (
@@ -24,7 +23,6 @@ import weaviate
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
-from weaviate.util import get_valid_uuid
 
 from .utils import maximal_marginal_relevance
 
@@ -103,7 +101,8 @@ class WeaviateVectorStore(VectorStore):
 
         if not isinstance(client, weaviate.WeaviateClient):
             raise ValueError(
-                f"client should be an instance of weaviate.WeaviateClient, got {type(client)}"
+                "client should be an instance of "
+                "weaviate.WeaviateClient, got {type(client)}"
             )
         self._client = client
         self._index_name = index_name or f"LangChain_{uuid4().hex}"
@@ -122,7 +121,8 @@ class WeaviateVectorStore(VectorStore):
         if not client.collections.exists(self._index_name):
             client.collections.create_from_dict(schema)
 
-        # store collection for convenience (does not actually send a request to weaviate)
+        # store collection for convenience
+        # this does not actually send a request to weaviate
         self._collection = client.collections.get(self._index_name)
 
         # store this setting so we don't have to send a request to weaviate
@@ -154,7 +154,8 @@ class WeaviateVectorStore(VectorStore):
 
         if tenant and not self._does_tenant_exist(tenant):
             logger.info(
-                f"Tenant {tenant} does not exist in index {self._index_name}. Creating tenant."
+                f"Tenant {tenant} does not exist in index {self._index_name}. "
+                "Creating tenant."
             )
             tenant_objs = [weaviate.classes.Tenant(name=tenant)]
             self._collection.tenants.create(tenants=tenant_objs)
@@ -209,13 +210,18 @@ class WeaviateVectorStore(VectorStore):
         Parameters:
         query (str): The query string to search for.
         k (int): The number of results to return.
-        return_score (bool, optional): Whether to return the score along with the document. Defaults to False.
-        search_method (Literal['hybrid', 'near_vector'], optional): The search method to use. Can be 'hybrid' or 'near_vector'. Defaults to 'hybrid'.
+        return_score (bool, optional): Whether to return the score along with the
+          document. Defaults to False.
+        search_method (Literal['hybrid', 'near_vector'], optional): The search method
+          to use. Can be 'hybrid' or 'near_vector'. Defaults to 'hybrid'.
         tenant (Optional[str], optional): The tenant name. Defaults to None.
-        **kwargs: Additional parameters to pass to the search method. These parameters will be directly passed to the underlying Weaviate client's search method.
+        **kwargs: Additional parameters to pass to the search method. These parameters
+          will be directly passed to the underlying Weaviate client's search method.
 
         Returns:
-        List[Union[Document, Tuple[Document, float]]]: A list of documents that match the query. If return_score is True, each document is returned as a tuple with the document and its score.
+        List[Union[Document, Tuple[Document, float]]]: A list of documents that match
+          the query. If return_score is True, each document is returned as a tuple
+          with the document and its score.
 
         Raises:
         ValueError: If _embedding is None or an invalid search method is provided.
@@ -272,7 +278,8 @@ class WeaviateVectorStore(VectorStore):
         Args:
             query: Text to look up documents similar to.
             k: Number of Documents to return. Defaults to 4.
-            **kwargs: Additional keyword arguments will be passed to the `hybrid()` function of the weaviate client.
+            **kwargs: Additional keyword arguments will be passed to the `hybrid()`
+                function of the weaviate client.
 
         Returns:
             List of Documents most similar to the query.

@@ -2,7 +2,7 @@
 import logging
 import os
 import uuid
-from typing import Generator, List, Union
+from typing import List, Union
 
 import pytest
 import requests
@@ -559,8 +559,8 @@ def test_search_with_multi_tenancy(
     )
 
     # Note: we only test MT with similarity_search because all public search methods
-    # in VectorStore takes kwargs to pass the tenant name, and internally calls _perform_search to
-    # validate and run the search query
+    # in VectorStore takes kwargs to pass the tenant name, and internally calls
+    # _perform_search to validate and run the search query
 
     # search without tenant with MT enabled
     with pytest.raises(
@@ -582,7 +582,8 @@ def test_search_with_multi_tenancy(
         docsearch.similarity_search("foo", k=1, tenant=tenant_name)
 
     # search without tenant with MT disabled
-    # weaviate will throw an error because MT is still enabled and we didn't pass a tenant
+    # weaviate will throw an error because MT is still enabled and we didn't pass
+    # a tenant
     with pytest.raises(
         ValueError, match="has multi-tenancy enabled, but request was without tenant"
     ):
