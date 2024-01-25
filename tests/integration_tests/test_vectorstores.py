@@ -428,3 +428,39 @@ def test_enable_multi_tenancy(
 
     schema = weaviate_client.collections.get(index_name).config.get(simple=False)
     assert schema.multi_tenancy_config.enabled == use_multi_tenancy
+
+
+def test_tenant_exists(
+    weaviate_client: weaviate.WeaviateClient,
+    embedding: FakeEmbeddings,
+) -> None:
+    index_name = "TestTenant"
+    tenant_name = "Foo"
+    tenant = weaviate.classes.Tenant(name=tenant_name)
+
+    # a collection with mt enabled
+    docsearch_with_mt = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=True,
+    )
+
+    assert not docsearch_with_mt._does_tenant_exist(tenant_name)
+
+    weaviate_client.collections.get(index_name).tenants.create([tenant])
+
+    assert docsearch_with_mt._does_tenant_exist(tenant_name)
+
+    # make another collection without mt enabled
+    docsearch_no_mt = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name="Bar",
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=False,
+    )
+
+    with pytest.raises(AssertionError, match="Cannot check for tenant existence"):
+        docsearch_no_mt._does_tenant_exist(tenant_name)
