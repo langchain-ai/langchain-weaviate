@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime
 import logging
 import os
+from collections.abc import Generator
+from contextlib import contextmanager
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -459,17 +461,27 @@ class WeaviateVectorStore(VectorStore):
 
         return weaviate_vector_store
 
-    def delete(self, ids: Optional[List[str]] = None, **kwargs: Any) -> None:
+    def delete(
+        self,
+        ids: Optional[List[str]] = None,
+        tenant: Optional[str] = None,
+        **kwargs: Any,
+    ) -> None:
         """Delete by vector IDs.
 
         Args:
             ids: List of ids to delete.
+            tenant: The tenant name. Defaults to None.
         """
 
         if ids is None:
             raise ValueError("No ids provided to delete.")
 
         id_filter = weaviate.classes.Filter.by_id().contains_any(ids)
+
+        with self._tenant_context(tenant) as collection:
+            collection.data.delete_many(where=id_filter)
+
     def _does_tenant_exist(self, tenant: str) -> bool:
         """Check if tenant exists in Weaviate."""
         assert (
@@ -478,3 +490,23 @@ class WeaviateVectorStore(VectorStore):
         tenants = self._collection.tenants.get()
 
         return tenant in tenants
+
+    @contextmanager
+    def _tenant_context(
+        self, tenant: Optional[str] = None
+    ) -> Generator[weaviate.collections.Collection, None, None]:
+        """Context manager for handling tenants.
+
+        Args:
+            tenant: The tenant name. Defaults to None.
+        """
+        collection = self._client.collections.get(self._index_name)
+        if tenant is not None:
+            assert (
+                self._multi_tenancy_enabled
+            ), "Cannot use tenant context when multi-tenancy is not enabled"
+            collection = collection.with_tenant(tenant)
+        try:
+            yield collection
+        finally:
+            pass

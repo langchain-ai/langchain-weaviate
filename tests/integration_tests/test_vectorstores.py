@@ -375,30 +375,38 @@ def test_similarity_search_with_score(
     assert doc.page_content == "cat"
 
 
+@pytest.mark.parametrize(
+    "use_multi_tenancy, tenant", [(True, "TestTenant"), (False, None)]
+)
 def test_delete(
     weaviate_client: weaviate.WeaviateClient,
     texts: List[str],
     embedding: FakeEmbeddings,
+    use_multi_tenancy: bool,
+    tenant: Union[str, None],
 ) -> None:
-    index_name = "TestDeleteFunction"
+    index_name = f"Index_{uuid.uuid4().hex}"
 
     docsearch = WeaviateVectorStore(
         client=weaviate_client,
         index_name=index_name,
         text_key="text",
         embedding=embedding,
+        use_multi_tenancy=use_multi_tenancy,
     )
-    docids = docsearch.add_texts(texts)
+    docids = docsearch.add_texts(texts, tenant=tenant)
 
     total_docs_before_delete = (
         weaviate_client.collections.get(index_name)
+        .with_tenant(tenant)
         .aggregate.over_all(total_count=True)
         .total_count
     )
-    docsearch.delete(docids)
+    docsearch.delete(docids, tenant=tenant)
 
     total_docs_after_delete = (
         weaviate_client.collections.get(index_name)
+        .with_tenant(tenant)
         .aggregate.over_all(total_count=True)
         .total_count
     )
