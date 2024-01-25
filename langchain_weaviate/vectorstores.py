@@ -82,6 +82,7 @@ class WeaviateVectorStore(VectorStore):
             Callable[[float], float]
         ] = _default_score_normalizer,
         by_text: bool = True,
+        use_multi_tenancy: bool = False,
     ):
         """Initialize with Weaviate client."""
 
@@ -100,6 +101,8 @@ class WeaviateVectorStore(VectorStore):
             self._query_attrs.extend(attributes)
 
         schema = _default_schema(self._index_name)
+        schema["MultiTenancyConfig"] = {"enabled": use_multi_tenancy}
+
         # check whether the index already exists
         if not client.collections.exists(self._index_name):
             client.collections.create_from_dict(schema)
