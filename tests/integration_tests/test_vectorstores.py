@@ -542,3 +542,48 @@ def test_simple_from_texts(
     )
 
     assert docsearch._multi_tenancy_enabled == use_multi_tenancy
+
+
+def test_search_with_multi_tenancy(
+    weaviate_client: weaviate.WeaviateClient, texts: List[str], embedding_openai
+) -> None:
+    index_name = f"Index_{uuid.uuid4().hex}"
+    tenant_name = "Foo"
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding_openai,
+        client=weaviate_client,
+        index_name=index_name,
+        tenant=tenant_name,
+    )
+
+    # Note: we only test MT with similarity_search because all public search methods
+    # in VectorStore takes kwargs to pass the tenant name, and internally calls _perform_search to
+    # validate and run the search query
+
+    # search without tenant with MT enabled
+    with pytest.raises(
+        ValueError, match="Must use tenant context when multi-tenancy is enabled"
+    ):
+        docsearch.similarity_search("foo", k=1)
+
+    # search with tenant with MT enabled
+    docsearch.similarity_search("foo", k=1, tenant=tenant_name)
+
+    # search with tenant with MT disabled
+    docsearch._multi_tenancy_enabled = (
+        False  # doesn't actually do anything to weaviate's schema
+    )
+
+    with pytest.raises(
+        ValueError, match="Cannot use tenant context when multi-tenancy is not enabled"
+    ):
+        docsearch.similarity_search("foo", k=1, tenant=tenant_name)
+
+    # search without tenant with MT disabled
+    # weaviate will throw an error because MT is still enabled and we didn't pass a tenant
+    with pytest.raises(
+        ValueError, match="has multi-tenancy enabled, but request was without tenant"
+    ):
+        docsearch.similarity_search("foo", k=1)

@@ -200,6 +200,7 @@ class WeaviateVectorStore(VectorStore):
         k: int,
         return_score=False,
         search_method: Literal["hybrid", "near_vector"] = "hybrid",
+        tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[Union[Document, Tuple[Document, float]]]:
         """
@@ -210,6 +211,7 @@ class WeaviateVectorStore(VectorStore):
         k (int): The number of results to return.
         return_score (bool, optional): Whether to return the score along with the document. Defaults to False.
         search_method (Literal['hybrid', 'near_vector'], optional): The search method to use. Can be 'hybrid' or 'near_vector'. Defaults to 'hybrid'.
+        tenant (Optional[str], optional): The tenant name. Defaults to None.
         **kwargs: Additional parameters to pass to the search method. These parameters will be directly passed to the underlying Weaviate client's search method.
 
         Returns:
@@ -226,20 +228,19 @@ class WeaviateVectorStore(VectorStore):
         else:
             kwargs["return_metadata"] = ["score"]
 
-        try:
-            if search_method == "hybrid":
-                embedding = self._embedding.embed_query(query)
-                result = self._client.collections.get(self._index_name).query.hybrid(
-                    query=query, vector=embedding, limit=k, **kwargs
-                )
-            elif search_method == "near_vector":
-                result = self._client.collections.get(
-                    self._index_name
-                ).query.near_vector(limit=k, **kwargs)
-            else:
-                raise ValueError(f"Invalid search method: {search_method}")
-        except weaviate.exceptions.WeaviateQueryException as e:
-            raise ValueError(f"Error during query: {e}")
+        with self._tenant_context(tenant) as collection:
+            try:
+                if search_method == "hybrid":
+                    embedding = self._embedding.embed_query(query)
+                    result = collection.query.hybrid(
+                        query=query, vector=embedding, limit=k, **kwargs
+                    )
+                elif search_method == "near_vector":
+                    result = collection.query.near_vector(limit=k, **kwargs)
+                else:
+                    raise ValueError(f"Invalid search method: {search_method}")
+            except weaviate.exceptions.WeaviateQueryException as e:
+                raise ValueError(f"Error during query: {e}")
 
         docs = []
         for obj in result.objects:
