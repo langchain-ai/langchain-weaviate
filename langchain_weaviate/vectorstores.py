@@ -122,7 +122,7 @@ class WeaviateVectorStore(VectorStore):
         if not client.collections.exists(self._index_name):
             client.collections.create_from_dict(schema)
 
-        # store collection because .get() sends a request to weaviate
+        # store collection for convenience (does not actually send a request to weaviate)
         self._collection = client.collections.get(self._index_name)
 
         # store this setting so we don't have to send a request to weaviate
