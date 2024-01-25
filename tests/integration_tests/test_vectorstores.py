@@ -416,7 +416,6 @@ class TestMultiTenancy:
         self,
         use_multi_tenancy,
         weaviate_client: weaviate.WeaviateClient,
-        texts: List[str],
         embedding: FakeEmbeddings,
     ) -> None:
         index_name = "TestMultiTenancy"
