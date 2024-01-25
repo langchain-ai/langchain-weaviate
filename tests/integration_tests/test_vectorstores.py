@@ -519,3 +519,26 @@ def test_add_texts_with_multi_tenancy(
         .total_count
         == len(texts) * 2
     )
+
+
+@pytest.mark.parametrize(
+    "use_multi_tenancy, tenant_name", [(True, "Foo"), (False, None)]
+)
+def test_simple_from_texts(
+    use_multi_tenancy,
+    tenant_name,
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
+) -> None:
+    index_name = f"Index_{uuid.uuid4().hex}"
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts,
+        embedding=embedding,
+        client=weaviate_client,
+        index_name=index_name,
+        tenant=tenant_name,
+    )
+
+    assert docsearch._multi_tenancy_enabled == use_multi_tenancy

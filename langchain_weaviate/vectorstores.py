@@ -455,6 +455,7 @@ class WeaviateVectorStore(VectorStore):
             attributes=attributes,
             relevance_score_fn=relevance_score_fn,
             by_text=by_text,
+            use_multi_tenancy=tenant is not None,
         )
 
         weaviate_vector_store.add_texts(texts, metadatas, tenant=tenant, **kwargs)
