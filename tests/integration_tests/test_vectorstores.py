@@ -410,23 +410,21 @@ def test_delete(
         docsearch.delete()
 
 
-class TestMultiTenancy:
-    @pytest.mark.parametrize("use_multi_tenancy", [True, False])
-    def test_enable_multi_tenancy(
-        self,
-        use_multi_tenancy,
-        weaviate_client: weaviate.WeaviateClient,
-        embedding: FakeEmbeddings,
-    ) -> None:
-        index_name = "TestMultiTenancy"
+@pytest.mark.parametrize("use_multi_tenancy", [True, False])
+def test_enable_multi_tenancy(
+    use_multi_tenancy,
+    weaviate_client: weaviate.WeaviateClient,
+    embedding: FakeEmbeddings,
+) -> None:
+    index_name = "TestMultiTenancy"
 
-        _ = WeaviateVectorStore(
-            client=weaviate_client,
-            index_name=index_name,
-            text_key="text",
-            embedding=embedding,
-            use_multi_tenancy=use_multi_tenancy,
-        )
+    _ = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key="text",
+        embedding=embedding,
+        use_multi_tenancy=use_multi_tenancy,
+    )
 
-        schema = weaviate_client.collections.get(index_name).config.get(simple=False)
-        assert schema.multi_tenancy_config.enabled == use_multi_tenancy
+    schema = weaviate_client.collections.get(index_name).config.get(simple=False)
+    assert schema.multi_tenancy_config.enabled == use_multi_tenancy
