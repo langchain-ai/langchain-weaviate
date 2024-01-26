@@ -43,7 +43,7 @@ jobs:
               title: 'Update Weaviate Server Image',
               owner,
               repo,
-              head: '${{ github.ref_name }}',
+              head: 'update-weaviate-image',
               base: 'main',
               body: [
                 'This PR updates the Weaviate version in tests/docker-compose.yml',
