@@ -30,3 +30,15 @@ jobs:
       with:
         runCmd: |
           poetry run ruff format -v --diff ./langchain_weaviate/ ./tests/
+  
+  run_tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Build and run Dev Container task
+      uses: devcontainers/ci@v0.3
+      with:
+        runCmd: |
+          poetry run pytest -n `nproc`
