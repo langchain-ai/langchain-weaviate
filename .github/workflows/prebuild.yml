@@ -17,7 +17,7 @@ jobs:
       uses: devcontainers/ci@v0.3
       with:
         runCmd: |
-          ruff -v ./langchain_weaviate/ ./tests/
+          poetry run ruff -v ./langchain_weaviate/ ./tests/
   
   format_check:
     name: Check code format
