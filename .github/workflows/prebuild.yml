@@ -1,0 +1,49 @@
+name: Pre-build checks
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint_check:
+    name: Lint the code
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Build and run Dev Container task
+      uses: devcontainers/ci@v0.3
+      with:
+        runCmd: |
+          poetry run ruff -v ./langchain_weaviate/ ./tests/
+  
+  format_check:
+    name: Check code format
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Build and run Dev Container task
+      uses: devcontainers/ci@v0.3
+      with:
+        runCmd: |
+          poetry run ruff format -v --diff ./langchain_weaviate/ ./tests/
+  
+  run_tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Build and run Dev Container task
+      uses: devcontainers/ci@v0.3
+      with:
+        runCmd: |
+          poetry run pytest -n `nproc` \
+            --cov=langchain_weaviate \
+            --cov-report term-missing \
+            --cov-fail-under=94.59
+        env:
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY_FROM_WEAVIATE }}
