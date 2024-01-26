@@ -2,9 +2,9 @@ name: Pre-build checks
 
 on:
   push:
-    branches: [ ci ]
+    branches: [ main ]
   pull_request:
-    branches: [ ci ]
+    branches: [ main ]
 
 jobs:
   lint_check:
