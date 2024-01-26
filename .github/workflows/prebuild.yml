@@ -42,3 +42,5 @@ jobs:
       with:
         runCmd: |
           poetry run pytest -n `nproc`
+        env:
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
