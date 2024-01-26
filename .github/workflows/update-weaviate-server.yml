@@ -1,4 +1,4 @@
-name: Update Weaviate Server Image
+name: Update weaviate server image
 
 on:
   push:
