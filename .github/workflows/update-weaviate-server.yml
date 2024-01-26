@@ -1,0 +1,40 @@
+name: Update Weaviate Version
+
+on: 
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1' # Every Monday at 00:00 UTC
+
+jobs:
+  update-version:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+
+    - name: Set up required tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq
+
+    - name: Update Weaviate Version
+      run: make update-weaviate-version
+
+    - name: Commit and push if changed
+      run: |
+        git config --global user.name '${{ github.actor }}'
+        git config --global user.email '${{ github.actor }}@users.noreply.github.com'
+        git add tests/docker-compose.yml
+        git diff-index --quiet HEAD || (git commit -m "Update Weaviate version in tests/docker-compose.yml" && git push)
+
+    - name: Create Pull Request
+      uses: actions/github-script@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const title = "Update Weaviate Version";
+          const body = "This PR updates the Weaviate version in tests/docker-compose.yml";
+          const branch = "main"; # Change to your target branch
+          const head = process.env.GITHUB_REF.split('/').pop();
+          const base = branch;
+          github.pulls.create({owner, repo, title, body, head, base});
