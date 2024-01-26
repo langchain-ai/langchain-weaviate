@@ -34,7 +34,7 @@ jobs:
         git diff-index --quiet HEAD || (git commit -m "Update Weaviate version in tests/docker-compose.yml" && git push)
 
     - name: Create Pull Request
-      uses: actions/github-script@v3
+      uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
