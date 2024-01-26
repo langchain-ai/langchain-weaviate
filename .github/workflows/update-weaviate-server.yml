@@ -36,7 +36,7 @@ jobs:
     - name: Create Pull Request
       uses: actions/github-script@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const title = "Update Weaviate Version";
           const body = "This PR updates the Weaviate version in tests/docker-compose.yml";
