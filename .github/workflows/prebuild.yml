@@ -41,6 +41,9 @@ jobs:
       uses: devcontainers/ci@v0.3
       with:
         runCmd: |
-          poetry run pytest -n `nproc`
+          poetry run pytest -n `nproc` \
+            --cov=langchain_weaviate \
+            --cov-report term-missing \
+            --cov-fail-under=94.59
         env:
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY_FROM_WEAVIATE }}
