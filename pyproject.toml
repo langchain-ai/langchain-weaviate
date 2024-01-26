@@ -42,7 +42,7 @@ optional = true
 ruff = "^0.1.5"
 
 [tool.poetry.group.typing.dependencies]
-mypy = "^0.991"
+mypy = ">=0.991,<1.9"
 
 [tool.poetry.group.dev]
 optional = true
