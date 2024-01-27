@@ -4,12 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 1' # Every Monday at 00:00 UTC
-  push:
-    branches:
-      - update-weaviate
-  pull_request:
-    branches:
-      - update-weaviate
 env:
   SOURCE_BRANCH_NAME: update-weaviate-image
 
