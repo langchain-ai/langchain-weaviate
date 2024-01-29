@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - main
-permissions:
-  contents: write
-  pull-requests: write
 
 env:
   PYTHON_VERSION: "3.10"
@@ -14,6 +11,9 @@ env:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     outputs:
       releases_created: ${{ steps.release.outputs.release_created }}
       paths_released: ${{ steps.release.outputs.paths_released }}
