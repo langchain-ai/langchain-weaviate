@@ -47,4 +47,3 @@ jobs:
             --cov-fail-under=94.59
         env:
           OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY_FROM_WEAVIATE }}
-          OPENAI_API_KEY_FROM_WEAVIATE=${{ secrets.OPENAI_API_KEY_FROM_WEAVIATE }}
