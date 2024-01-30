@@ -111,7 +111,7 @@ def test_similarity_search_with_metadata_and_filter(
         texts, embedding_openai, metadatas=metadatas, client=weaviate_client
     )
     output = docsearch.similarity_search(
-        "foo", k=2, filters=weaviate.classes.Filter.by_property("page").equal(0)
+        "foo", k=2, filters=weaviate.classes.query.Filter.by_property("page").equal(0)
     )
     assert output == [Document(page_content="foo", metadata={"page": 0})]
 
@@ -240,7 +240,7 @@ def test_max_marginal_relevance_search_with_filter(
         texts, embedding_openai, metadatas=metadatas, client=weaviate_client
     )
 
-    is_page_0_filter = weaviate.classes.Filter.by_property("page").equal(0)
+    is_page_0_filter = weaviate.classes.query.Filter.by_property("page").equal(0)
     # if lambda=1 the algorithm should be equivalent to standard ranking
     standard_ranking = docsearch.similarity_search("foo", k=2, filters=is_page_0_filter)
     output = docsearch.max_marginal_relevance_search(
@@ -444,7 +444,7 @@ def test_tenant_exists(
 ) -> None:
     index_name = "TestTenant"
     tenant_name = "Foo"
-    tenant = weaviate.classes.Tenant(name=tenant_name)
+    tenant = weaviate.classes.tenants.Tenant(name=tenant_name)
 
     # a collection with mt enabled
     docsearch_with_mt = WeaviateVectorStore(
