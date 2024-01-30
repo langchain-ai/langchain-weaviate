@@ -2853,13 +2853,13 @@ files = [
 
 [[package]]
 name = "weaviate-client"
-version = "4.4b9"
+version = "4.4rc0"
 description = "A python native Weaviate client"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "weaviate-client-4.4b9.tar.gz", hash = "sha256:4c9d1e237b7e5f952e95eb6fe91d1a076b3ec0a87e8bf0b8107f781fab8d4cda"},
-    {file = "weaviate_client-4.4b9-py3-none-any.whl", hash = "sha256:6553f24a3281ddd658b9c8862bc93007f7c1810acc11baa718a65096f0fa3196"},
+    {file = "weaviate-client-4.4rc0.tar.gz", hash = "sha256:cb24e74ed56b769a7836c0250512b33ed1c264220e864571e1719e3f0ca71ab3"},
+    {file = "weaviate_client-4.4rc0-py3-none-any.whl", hash = "sha256:dbbd9e0ec1e065b58c9e2e425ef079698ab01ab8bed49f16480d0562b12e8910"},
 ]
 
 [package.dependencies]
