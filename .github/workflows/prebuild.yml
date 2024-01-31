@@ -2,6 +2,9 @@ name: Pre-build checks
 
 on:
   workflow_call:
+    secrets:
+      OPENAI_API_KEY_FROM_WEAVIATE:
+        required: true
   push:
     branches: [ main ]
   pull_request:

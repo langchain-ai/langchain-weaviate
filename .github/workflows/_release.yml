@@ -14,6 +14,7 @@ env:
 jobs:
   prebuild-checks:
     uses: ./.github/workflows/prebuild.yml
+    secrets: inherit
   # release-please:
   #   runs-on: ubuntu-latest
   #   permissions:
