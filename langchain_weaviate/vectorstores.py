@@ -157,7 +157,7 @@ class WeaviateVectorStore(VectorStore):
                 f"Tenant {tenant} does not exist in index {self._index_name}. "
                 "Creating tenant."
             )
-            tenant_objs = [weaviate.classes.Tenant(name=tenant)]
+            tenant_objs = [weaviate.classes.tenants.Tenant(name=tenant)]
             self._collection.tenants.create(tenants=tenant_objs)
 
         ids = []
@@ -167,7 +167,7 @@ class WeaviateVectorStore(VectorStore):
                 texts = list(texts)
             embeddings = self._embedding.embed_documents(texts)
 
-        with self._client.batch as batch:
+        with self._client.batch.dynamic() as batch:
             for i, text in enumerate(texts):
                 data_properties = {self._text_key: text}
                 if metadatas is not None:
@@ -259,7 +259,7 @@ class WeaviateVectorStore(VectorStore):
             merged_props = {
                 **obj.properties,
                 **filtered_metadata,
-                **({"vector": obj.vector} if obj.vector else {}),
+                **({"vector": obj.vector["default"]} if obj.vector else {}),
             }
             doc = Document(page_content=text, metadata=merged_props)
             if not return_score:
@@ -486,7 +486,7 @@ class WeaviateVectorStore(VectorStore):
         if ids is None:
             raise ValueError("No ids provided to delete.")
 
-        id_filter = weaviate.classes.Filter.by_id().contains_any(ids)
+        id_filter = weaviate.classes.query.Filter.by_id().contains_any(ids)
 
         with self._tenant_context(tenant) as collection:
             collection.data.delete_many(where=id_filter)
