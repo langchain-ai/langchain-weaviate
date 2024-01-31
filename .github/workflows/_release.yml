@@ -31,36 +31,35 @@ jobs:
   #       with:
   #         manifest-file: ".release-please-manifest.json"
   #         config-file: "release-please-config.json"
-  # build:
-  #   needs: release-please
-  #   if: ${{ needs.release-please.outputs.releases_created }}
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
-  #       uses: "./.github/actions/poetry_setup"
-  #       with:
-  #         python-version: ${{ env.PYTHON_VERSION }}
-  #         poetry-version: ${{ env.POETRY_VERSION }}
-  #         working-directory: .
-  #         cache-key: release
-  #     - name: Build project for distribution
-  #       run: poetry build
-  #       working-directory: .
+  build:
+    needs: prebuild-checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
+        uses: "./.github/actions/poetry_setup"
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          poetry-version: ${{ env.POETRY_VERSION }}
+          working-directory: .
+          cache-key: release
+      - name: Build project for distribution
+        run: poetry build
+        working-directory: .
 
-  #     - name: Upload build
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: dist
-  #         path: ./dist/
+      - name: Upload build
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: ./dist/
 
-  #     - name: Check Version
-  #       id: check-version
-  #       shell: bash
-  #       working-directory: .
-  #       run: |
-  #         echo pkg-name="$(poetry version | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
-  #         echo version="$(poetry version --short)" >> $GITHUB_OUTPUT
+      - name: Check Version
+        id: check-version
+        shell: bash
+        working-directory: .
+        run: |
+          echo pkg-name="$(poetry version | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
+          echo version="$(poetry version --short)" >> $GITHUB_OUTPUT
 
   #     # We want to keep this build stage *separate* from the release stage,
   #     # so that there's no sharing of permissions between them.
