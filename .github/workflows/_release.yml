@@ -179,46 +179,45 @@ jobs:
   #     #     make tests
   #     #   working-directory: .
 
-  # publish:
-  #   needs:
-  #     - build
-  #     - test-pypi-publish
-  #     - pre-release-checks
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     # This permission is used for trusted publishing:
-  #     # https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/
-  #     #
-  #     # Trusted publishing has to also be configured on PyPI for each package:
-  #     # https://docs.pypi.org/trusted-publishers/adding-a-publisher/
-  #     id-token: write
+  publish:
+    needs:
+      - build
+      - test-pypi-publish
+    runs-on: ubuntu-latest
+    permissions:
+      # This permission is used for trusted publishing:
+      # https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/
+      #
+      # Trusted publishing has to also be configured on PyPI for each package:
+      # https://docs.pypi.org/trusted-publishers/adding-a-publisher/
+      id-token: write
 
-  #   defaults:
-  #     run:
-  #       working-directory: .
+    defaults:
+      run:
+        working-directory: .
 
-  #   steps:
-  #     - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-  #     - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
-  #       uses: "./.github/actions/poetry_setup"
-  #       with:
-  #         python-version: ${{ env.PYTHON_VERSION }}
-  #         poetry-version: ${{ env.POETRY_VERSION }}
-  #         working-directory: .
-  #         cache-key: release
+      - name: Set up Python + Poetry ${{ env.POETRY_VERSION }}
+        uses: "./.github/actions/poetry_setup"
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          poetry-version: ${{ env.POETRY_VERSION }}
+          working-directory: .
+          cache-key: release
 
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: dist
-  #         path: ./dist/
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: ./dist/
 
-  #     - name: Publish package distributions to PyPI
-  #       uses: pypa/gh-action-pypi-publish@release/v1
-  #       with:
-  #         packages-dir: ./dist/
-  #         verbose: true
-  #         print-hash: true
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ./dist/
+          verbose: true
+          print-hash: true
 
   # mark-release:
   #   needs:
