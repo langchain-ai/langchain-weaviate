@@ -9,7 +9,7 @@ env:
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/main'
+    # if: github.ref == 'refs/heads/main' # not necessary since we only release on tags pushed to main
     runs-on: ubuntu-latest
 
     outputs:

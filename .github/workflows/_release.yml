@@ -75,8 +75,8 @@ jobs:
   #     # https://github.com/pypa/gh-action-pypi-publish#non-goals
 
   test-pypi-publish:
-    # needs:
-    #   - build
+    needs:
+      - prebuild-checks
     uses:
       ./.github/workflows/_test_release.yml
     secrets: inherit
