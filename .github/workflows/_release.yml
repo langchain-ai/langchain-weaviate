@@ -11,6 +11,8 @@ env:
   POETRY_VERSION: "1.7.1"
 
 jobs:
+  prebuild-checks:
+    uses: ./.github/workflows/prebuild.yml
   # release-please:
   #   runs-on: ubuntu-latest
   #   permissions:
