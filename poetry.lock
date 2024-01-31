@@ -1965,18 +1965,18 @@ testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtuale
 
 [[package]]
 name = "pytest-docker"
-version = "2.2.0"
+version = "3.0.0"
 description = "Simple pytest fixtures for Docker and Docker Compose based tests"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 files = [
-    {file = "pytest-docker-2.2.0.tar.gz", hash = "sha256:b083fd2ae69212369390033c22228d3263555a5f3b4bef87b74160e07218f377"},
-    {file = "pytest_docker-2.2.0-py3-none-any.whl", hash = "sha256:8ee9c9742d58ac079c81c03635bb830881f7f4d529f0f53f4ba2c89ffc9c7137"},
+    {file = "pytest-docker-3.0.0.tar.gz", hash = "sha256:82c2621289d07d87ff6725462fcc1a9e408f544400ca1b6b9831b37b88954357"},
+    {file = "pytest_docker-3.0.0-py3-none-any.whl", hash = "sha256:3440b3f7ee1af43b5332569694d3c6324ecc0f3f94ccd528ecdbfd9ee90d1da6"},
 ]
 
 [package.dependencies]
 attrs = ">=19.2.0"
-pytest = ">=4.0,<8.0"
+pytest = ">=4.0,<9.0"
 
 [package.extras]
 docker-compose-v1 = ["docker-compose (>=1.27.3,<2.0)"]
@@ -2968,4 +2968,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "491c7dfe653f7f0c03e24a8cea85eea3e0bb3f908bddf41fc53562ed0220f3d0"
+content-hash = "bf4dcd99c2b117635eda34d5b4f567a726fdcc8948ca7fc7f49ed97a7e87990e"
