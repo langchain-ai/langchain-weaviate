@@ -11,12 +11,6 @@ integration_tests: TEST_FILE=tests/integration_tests/
 # test:
 # 	poetry run pytest $(TEST_FILE)
 
-tag:
-	git branch | grep '* main' > /dev/null || (echo "You must be on the main branch to create a tag" && exit 1)
-	$(eval VERSION := $(shell poetry version | cut -d' ' -f2))
-	git tag $(VERSION)
-	git push origin $(VERSION)
-
 update-weaviate-image:
 	$(eval DOCKER_COMPOSE_FILE := tests/docker-compose.yml)
 
