@@ -165,7 +165,9 @@ def test_similarity_search_by_text(
     """Test end to end construction and search by text."""
 
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, client=weaviate_client, by_text=True
+        texts,
+        embedding_openai,
+        client=weaviate_client,
     )
 
     output = docsearch.similarity_search("foo", k=1)
@@ -361,7 +363,7 @@ def test_similarity_search_with_score(
 
     # now create an instance with an embedding
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, client=weaviate_client, by_text=False
+        texts, embedding_openai, client=weaviate_client
     )
 
     results = docsearch.similarity_search_with_score("kitty", k=1)

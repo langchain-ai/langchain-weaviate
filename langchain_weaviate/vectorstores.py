@@ -94,7 +94,6 @@ class WeaviateVectorStore(VectorStore):
         relevance_score_fn: Optional[
             Callable[[float], float]
         ] = _default_score_normalizer,
-        by_text: bool = True,
         use_multi_tenancy: bool = False,
     ):
         """Initialize with Weaviate client."""
@@ -110,7 +109,6 @@ class WeaviateVectorStore(VectorStore):
         self._text_key = text_key
         self._query_attrs = [self._text_key]
         self.relevance_score_fn = relevance_score_fn
-        self._by_text = by_text
         if attributes is not None:
             self._query_attrs.extend(attributes)
 
@@ -410,7 +408,6 @@ class WeaviateVectorStore(VectorStore):
         *,
         index_name: Optional[str] = None,
         text_key: str = "text",
-        by_text: bool = False,
         relevance_score_fn: Optional[
             Callable[[float], float]
         ] = _default_score_normalizer,
@@ -433,7 +430,6 @@ class WeaviateVectorStore(VectorStore):
             tenant: The tenant name. Defaults to None.
             index_name: Index name.
             text_key: Key to use for uploading/retrieving text to/from vectorstore.
-            by_text: Whether to search by text or by embedding.
             relevance_score_fn: Function for converting whatever distance function the
                 vector store uses to a relevance score, which is a normalized similarity
                 score (0 means dissimilar, 1 means similar).
@@ -462,7 +458,6 @@ class WeaviateVectorStore(VectorStore):
             embedding=embedding,
             attributes=attributes,
             relevance_score_fn=relevance_score_fn,
-            by_text=by_text,
             use_multi_tenancy=tenant is not None,
         )
 
