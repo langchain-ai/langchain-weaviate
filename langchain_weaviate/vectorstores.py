@@ -189,6 +189,15 @@ class WeaviateVectorStore(VectorStore):
                 )
 
                 ids.append(_id)
+
+        failed_objs = self._client.batch.failed_objects
+        for obj in failed_objs:
+            err_message = (
+                f"Failed to add object: {obj.original_uuid}\nReason: {obj.message}"
+            )
+
+            logger.error(err_message)
+
         return ids
 
     def _perform_search(
