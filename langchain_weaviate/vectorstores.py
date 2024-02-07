@@ -161,8 +161,6 @@ class WeaviateVectorStore(VectorStore):
         ids = []
         embeddings: Optional[List[List[float]]] = None
         if self._embedding:
-            if not isinstance(texts, list):
-                texts = list(texts)
             embeddings = self._embedding.embed_documents(texts)
 
         with self._client.batch.dynamic() as batch:
