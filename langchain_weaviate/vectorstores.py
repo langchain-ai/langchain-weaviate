@@ -236,6 +236,8 @@ class WeaviateVectorStore(VectorStore):
         ):
             kwargs["return_properties"].append(self._text_key)
 
+        return_uuids = kwargs.pop("return_uuids", False)
+
         with self._tenant_context(tenant) as collection:
             try:
                 if search_method == "hybrid":
@@ -262,6 +264,7 @@ class WeaviateVectorStore(VectorStore):
                 **obj.properties,
                 **filtered_metadata,
                 **({"vector": obj.vector["default"]} if obj.vector else {}),
+                **({"uuid": str(obj.uuid)} if return_uuids else {}),
             }
             doc = Document(page_content=text, metadata=merged_props)
             if not return_score:

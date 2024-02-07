@@ -687,3 +687,9 @@ def test_documents_with_many_properties(weaviate_client, embedding_openai):
     # you can also specify which properties to return
     doc = docsearch.similarity_search("foo", k=1, return_properties=["ticker"])[0]
     assert set(doc.metadata.keys()) == {"ticker"}
+
+    # returning the uuids requires a different method
+    doc = docsearch.similarity_search(
+        "foo", k=1, return_uuids=True, return_properties=["ticker", "categoryid"]
+    )[0]
+    assert set(doc.metadata.keys()) == {"uuid", "ticker", "categoryid"}
