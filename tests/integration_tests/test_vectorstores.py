@@ -165,7 +165,9 @@ def test_similarity_search_by_text(
     """Test end to end construction and search by text."""
 
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, client=weaviate_client, by_text=True
+        texts,
+        embedding_openai,
+        client=weaviate_client,
     )
 
     output = docsearch.similarity_search("foo", k=1)
@@ -361,7 +363,7 @@ def test_similarity_search_with_score(
 
     # now create an instance with an embedding
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, client=weaviate_client, by_text=False
+        texts, embedding_openai, client=weaviate_client
     )
 
     results = docsearch.similarity_search_with_score("kitty", k=1)
@@ -588,3 +590,35 @@ def test_search_with_multi_tenancy(
         ValueError, match="has multi-tenancy enabled, but request was without tenant"
     ):
         docsearch.similarity_search("foo", k=1)
+
+
+def test_invalid_client_type():
+    with pytest.raises(ValueError) as excinfo:
+        invalid_client = "invalid_client"
+        index_name = "test_index"
+        text_key = "text"
+
+        WeaviateVectorStore(
+            client=invalid_client,
+            index_name=index_name,
+            text_key=text_key,
+        )
+
+    assert (
+        str(excinfo.value)
+        == "client should be an instance of weaviate.WeaviateClient, got <class 'str'>"
+    )
+
+
+def test_embedding_property(weaviate_client, embedding_openai):
+    index_name = "test_index"
+    text_key = "text"
+
+    docsearch = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key=text_key,
+        embedding=embedding_openai,
+    )
+
+    assert type(docsearch.embeddings) == OpenAIEmbeddings
