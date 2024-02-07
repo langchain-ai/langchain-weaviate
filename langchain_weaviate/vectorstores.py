@@ -100,8 +100,7 @@ class WeaviateVectorStore(VectorStore):
 
         if not isinstance(client, weaviate.WeaviateClient):
             raise ValueError(
-                "client should be an instance of "
-                "weaviate.WeaviateClient, got {type(client)}"
+                f"client should be an instance of weaviate.WeaviateClient, got {type(client)}"
             )
         self._client = client
         self._index_name = index_name or f"LangChain_{uuid4().hex}"
