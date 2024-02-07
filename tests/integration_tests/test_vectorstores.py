@@ -608,3 +608,17 @@ def test_invalid_client_type():
         str(excinfo.value)
         == "client should be an instance of weaviate.WeaviateClient, got <class 'str'>"
     )
+
+
+def test_embedding_property(weaviate_client, embedding_openai):
+    index_name = "test_index"
+    text_key = "text"
+
+    docsearch = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key=text_key,
+        embedding=embedding_openai,
+    )
+
+    assert type(docsearch.embeddings) == OpenAIEmbeddings
