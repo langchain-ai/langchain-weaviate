@@ -622,3 +622,68 @@ def test_embedding_property(weaviate_client, embedding_openai):
     )
 
     assert type(docsearch.embeddings) == OpenAIEmbeddings
+
+
+def test_documents_with_many_properties(weaviate_client, embedding_openai):
+    data = [
+        {
+            "aliases": ["Big Tech Co", "Tech Giant"],
+            "categoryid": "101",
+            "name": "Tech Innovations Drive Market Surge",
+            "page_content": "The latest product launch by Big Tech Co "
+            "has exceeded expectations, "
+            "pushing its stock to record highs and invigorating the tech sector.",
+            "ticker": "BTCH",
+        },
+        {
+            "aliases": ["Global Energy Leader", "Energy Corp"],
+            "categoryid": "102",
+            "name": "Energy Corp Announces Renewable Initiative",
+            "page_content": "In a bold move towards sustainability, "
+            "Energy Corp has unveiled plans "
+            "to significantly increase its investment in renewable energy sources, "
+            "sparking investor interest.",
+            "ticker": "GEL",
+        },
+        {
+            "aliases": ["Pharma Pioneer", "Healthcare Innovator"],
+            "categoryid": "103",
+            "name": "Breakthrough Drug Approval",
+            "page_content": "Pharma Pioneer's latest drug has received FDA approval, "
+            "setting the stage "
+            "for a major shift in treatment options and a positive outlook for the "
+            "company's stock.",
+            "ticker": "PPHI",
+        },
+    ]
+
+    uuids = [uuid.uuid4().hex for _ in range(3)]
+    properties = set(data[0].keys())
+
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+    text_key = "page_content"
+
+    # since text_key is a separate field in a LangChain Document,
+    # we remove it from the properties
+    properties.remove(text_key)
+
+    docsearch = WeaviateVectorStore(
+        client=weaviate_client,
+        index_name=index_name,
+        text_key=text_key,
+        embedding=embedding_openai,
+    )
+
+    texts = [doc["page_content"] for doc in data]
+    metadatas = [{k: doc[k] for k in doc if k != "page_content"} for doc in data]
+    doc_ids = docsearch.add_texts(texts, metadatas=metadatas, uuids=uuids)
+
+    weaviate_client.collections.get(index_name).query.fetch_object_by_id(doc_ids[0])
+
+    # by default, all the properties are returned
+    doc = docsearch.similarity_search("foo", k=1)[0]
+    assert set(doc.metadata.keys()) == properties
+
+    # you can also specify which properties to return
+    doc = docsearch.similarity_search("foo", k=1, return_properties=["ticker"])[0]
+    assert set(doc.metadata.keys()) == {"ticker"}

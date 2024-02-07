@@ -230,6 +230,12 @@ class WeaviateVectorStore(VectorStore):
         else:
             kwargs["return_metadata"] = ["score"]
 
+        if (
+            "return_properties" in kwargs
+            and self._text_key not in kwargs["return_properties"]
+        ):
+            kwargs["return_properties"].append(self._text_key)
+
         with self._tenant_context(tenant) as collection:
             try:
                 if search_method == "hybrid":
