@@ -1,6 +1,7 @@
 """Test Weaviate functionality."""
 import logging
 import os
+import re
 import uuid
 from typing import List, Union
 
@@ -693,3 +694,43 @@ def test_documents_with_many_properties(weaviate_client, embedding_openai):
         "foo", k=1, return_uuids=True, return_properties=["ticker", "categoryid"]
     )[0]
     assert set(doc.metadata.keys()) == {"uuid", "ticker", "categoryid"}
+
+
+def test_ingest_bad_documents(weaviate_client, embedding_openai, caplog):
+    # try to ingest 2 documents
+    docs = [
+        Document(page_content="foo", metadata={"page": 0}),
+        Document(page_content="bar", metadata={"_additional": 1}),
+    ]
+    uuids = [weaviate.util.generate_uuid5(doc) for doc in docs]
+
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+    text_key = "page_content"
+
+    with caplog.at_level(logging.ERROR):
+        _ = WeaviateVectorStore.from_documents(
+            documents=docs,
+            embedding=embedding_openai,
+            client=weaviate_client,
+            index_name=index_name,
+            text_key=text_key,
+            uuids=uuids,
+        )
+
+        good_doc_uuid, bad_doc_uuid = uuids
+
+        # the bad doc should generate a log message
+        pattern = r"ERROR.*Failed to add object: {}".format(bad_doc_uuid)
+        assert re.search(pattern, caplog.text)
+        assert good_doc_uuid not in caplog.text
+
+        # the good doc should still be ingested
+        total_docs = (
+            weaviate_client.collections.get(index_name)
+            .aggregate.over_all(total_count=True)
+            .total_count
+        )
+        assert total_docs == 1
+        assert weaviate_client.collections.get(index_name).query.fetch_object_by_id(
+            good_doc_uuid
+        )
