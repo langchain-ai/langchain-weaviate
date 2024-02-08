@@ -57,7 +57,7 @@ optional = true
 langchain-openai = ">=0.0.3,<0.1"
 
 [tool.ruff]
-select = [
+lint.select = [
   "E",  # pycodestyle
   "F",  # pyflakes
   "I",  # isort
