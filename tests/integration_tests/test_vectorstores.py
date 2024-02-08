@@ -641,7 +641,7 @@ def test_embedding_property(weaviate_client, embedding_openai):
         embedding=embedding_openai,
     )
 
-    assert type(docsearch.embeddings) == OpenAIEmbeddings
+    assert type(docsearch.embeddings) == type(embedding_openai)
 
 
 def test_documents_with_many_properties(weaviate_client, embedding_openai):
