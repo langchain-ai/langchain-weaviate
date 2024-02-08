@@ -59,9 +59,28 @@ def weaviate_client(docker_ip, docker_services):
     client.close()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def embedding_openai():
-    yield OpenAIEmbeddings()
+    class MemoizedOpenAIEmbeddings(OpenAIEmbeddings):
+        def __init__(self):
+            super().__init__()
+            object.__setattr__(self, "cache", {})
+
+        def embed_query(self, query):
+            if query not in self.cache:
+                # Call the base class method if result not cached
+                self.cache[query] = super().embed_query(query)
+            return self.cache[query]
+
+        def embed_documents(self, documents):
+            # Use tuple to allow documents list to be hashable
+            hashable_docs = tuple(documents)
+            if hashable_docs not in self.cache:
+                # Call the base class method if result not cached
+                self.cache[hashable_docs] = super().embed_documents(documents)
+            return self.cache[hashable_docs]
+
+    yield MemoizedOpenAIEmbeddings()
 
 
 @pytest.fixture
