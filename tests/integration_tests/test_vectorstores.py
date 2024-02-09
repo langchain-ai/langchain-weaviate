@@ -753,3 +753,50 @@ def test_ingest_bad_documents(weaviate_client, embedding_openai, caplog):
         assert weaviate_client.collections.get(index_name).query.fetch_object_by_id(
             good_doc_uuid
         )
+
+
+@pytest.mark.parametrize("auto_limit, expected_num_docs", [(0, 4), (1, 3)])
+def test_autocut(weaviate_client, embedding_openai, auto_limit, expected_num_docs):
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+    text_key = "page_content"
+
+    # 4 documents, 3 of which are semantically similar to each other and 1 is very
+    # dissimilar. So, by default, query should return all 4 documents but with
+    # auto_limit=1, the dissimilar document should be cut off
+    texts = [
+        "Renewable energy sources like solar and wind power play a crucial role in "
+        "combating climate change.",
+        "The transition to green energy technologies is vital for reducing global "
+        "carbon emissions.",
+        "Investing in sustainable energy solutions is key to achieving environmental "
+        "conservation goals.",
+        "Ancient civilizations developed complex societies without the use of modern "
+        "technology.",
+    ]
+
+    query = "How does the use of renewable resources impact ecological sustainability?"
+
+    docsearch = WeaviateVectorStore.from_texts(
+        texts=texts,
+        embedding=embedding_openai,
+        client=weaviate_client,
+        index_name=index_name,
+        text_key=text_key,
+    )
+
+    def run_similarity_test(search_method):
+        f = getattr(docsearch, search_method)
+        results = f(
+            query=query,
+            auto_limit=auto_limit,
+            k=len(texts),
+            fusion_type=weaviate.classes.query.HybridFusion.RELATIVE_SCORE,
+        )
+
+        actual_num_docs = len(results)
+
+        assert actual_num_docs == expected_num_docs
+
+    run_similarity_test("similarity_search")
+
+    run_similarity_test("similarity_search_with_score")
