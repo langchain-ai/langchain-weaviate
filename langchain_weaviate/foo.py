@@ -1,4 +1,4 @@
 def area(r):
-    #if DEBUG:
+    # if DEBUG:
     #   print("Computing area of %r" % r)
     return r.length * r.width
