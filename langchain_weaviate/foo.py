@@ -96,3 +96,8 @@ def unsafe(request):
     target = request.args.get('target', '')
     if UNSAFE_REGEX.match(target):
         return redirect(target)
+
+import os
+
+def download(path): 
+    os.system("wget " + path) # NOT OK
