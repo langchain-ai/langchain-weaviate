@@ -1,4 +1,10 @@
+import logging
+import os
+import re
 import subprocess
+
+from django.utils.log import request_logger
+from flask import Flask, request
 
 
 def area(r):
@@ -33,8 +39,9 @@ def load_from_config(key, config_file):
     # TODO: Implement loading from config logic
     pass
 
+
 # https://codeql.github.com/codeql-query-help/python/py-side-effect-in-assert/
-assert subprocess.call(['run-backup']) == 0
+assert subprocess.call(["run-backup"]) == 0
 
 
 #!/usr/bin/env python
@@ -42,62 +49,61 @@ assert subprocess.call(['run-backup']) == 0
 """
 @Desc   ：Log Injection
 """
-from flask import Flask
-from flask import request
-from django.utils.log import request_logger
-import logging
+
 
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
-@app.route('/bad1')
+
+@app.route("/bad1")
 def bad1():
-    name = request.args.get('name')
-    app.logger.info('User name: ' + name) # Bad
-    return 'bad1'
+    name = request.args.get("name")
+    app.logger.info("User name: " + name)  # Bad
+    return "bad1"
 
-@app.route('/bad2')
+
+@app.route("/bad2")
 def bad2():
-    name = request.args.get('name')
-    logging.info('User name: ' + name) # Bad
-    return 'bad2'
+    name = request.args.get("name")
+    logging.info("User name: " + name)  # Bad
+    return "bad2"
 
-@app.route('/bad3')
+
+@app.route("/bad3")
 def bad3():
-    name = request.args.get('name')
-    request_logger.warn('User name: ' + name) # Bad
-    return 'bad3'
+    name = request.args.get("name")
+    request_logger.warn("User name: " + name)  # Bad
+    return "bad3"
 
-@app.route('/bad4')
+
+@app.route("/bad4")
 def bad4():
-    name = request.args.get('name')
-    logtest = logging.getLogger('test')
-    logtest.debug('User name: ' + name) # Bad
-    return 'bad4'
+    name = request.args.get("name")
+    logtest = logging.getLogger("test")
+    logtest.debug("User name: " + name)  # Bad
+    return "bad4"
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     app.debug = True
-    handler = logging.FileHandler('log')
+    handler = logging.FileHandler("log")
     app.logger.addHandler(handler)
     app.run()
 
-
-from flask import Flask, request, redirect
-import re
 
 app = Flask(__name__)
 
 UNSAFE_REGEX = re.compile("(www|beta).example.com/")
 SAFE_REGEX = re.compile(r"(www|beta)\.example\.com/")
 
-@app.route('/some/path/bad')
+
+@app.route("/some/path/bad")
 def unsafe(request):
-    target = request.args.get('target', '')
+    target = request.args.get("target", "")
     if UNSAFE_REGEX.match(target):
         return redirect(target)
 
-import os
 
-def download(path): 
-    os.system("wget " + path) # NOT OK
+def download(path):
+    os.system("wget " + path)  # NOT OK
