@@ -1,3 +1,6 @@
+import subprocess
+
+
 def area(r):
     # if DEBUG:
     #   print("Computing area of %r" % r)
@@ -29,3 +32,6 @@ def redirect(url):
 def load_from_config(key, config_file):
     # TODO: Implement loading from config logic
     pass
+
+# https://codeql.github.com/codeql-query-help/python/py-side-effect-in-assert/
+assert subprocess.call(['run-backup']) == 0
