@@ -2403,38 +2403,38 @@ testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jar
 
 [[package]]
 name = "simsimd"
-version = "3.7.6"
+version = "3.7.7"
 description = "Fastest SIMD-Accelerated Vector Similarity Functions for x86 and Arm"
 optional = false
 python-versions = "*"
 files = [
-    {file = "simsimd-3.7.6-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:cfd0e3ece883eef4e5401d66f01a52e4536720d5a52ba5272b7f3ca543046d4a"},
-    {file = "simsimd-3.7.6-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:dc114e4ecbe07a81e266edf3ab58a4b3a0673a58096a7c705e5145ed7ae13f41"},
-    {file = "simsimd-3.7.6-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:13e016d0ca11f82bfd669d9b2f5c63f2b2b31adae5856c7f7760aaa1bf3f591f"},
-    {file = "simsimd-3.7.6-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:cc20eeec8d347a3b91ca951b22060cf3003016b246db868c0407ebe051cfbea0"},
-    {file = "simsimd-3.7.6-cp310-cp310-win_amd64.whl", hash = "sha256:040f7acde19654b735df359ebb104d1fc0f3367dea3ee56072076339acdd6641"},
-    {file = "simsimd-3.7.6-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:2fc7d631309cdac3d5d8a8531af7fc4b6f0be03a80824874025b620be5acb484"},
-    {file = "simsimd-3.7.6-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:f2bd74fb08b966ebd33318d7ab22942871890deddaa57fb3e14e203bc4274501"},
-    {file = "simsimd-3.7.6-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:2b195ab72a67a01383ec831e5ef9a7b58db82e235c9e37e28f307e6894d8ebc2"},
-    {file = "simsimd-3.7.6-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:5273dd596b922099523be9a4b453d0dfa93176f656ce58c0a706a3ff931fee42"},
-    {file = "simsimd-3.7.6-cp311-cp311-win_amd64.whl", hash = "sha256:0e9b268885aa7e92edcf4c3625c869738a800a376891bffc30f2f104eea040c5"},
-    {file = "simsimd-3.7.6-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:afd4e6100629cd063cbdb54a5c7f43c4099eb5c7b13b25a03ba880aaa7235930"},
-    {file = "simsimd-3.7.6-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:6634b6f6409e899ad7b194d16bfaddf923bcc741576ec95bbd92ef61219ca952"},
-    {file = "simsimd-3.7.6-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:1ac76b6e3122e19ee868135b883d350bbfedc8087a78fba81556e5e86aac757b"},
-    {file = "simsimd-3.7.6-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:d1ec93d659267ead56620bcea958f3ad7ae4d17da04faaf3db85c660f4b92702"},
-    {file = "simsimd-3.7.6-cp312-cp312-win_amd64.whl", hash = "sha256:9b4858dfa927003133199e30eaf2a7f035bb4eb9d02eb7d4e993a68520eeb4d2"},
-    {file = "simsimd-3.7.6-cp36-cp36m-win_amd64.whl", hash = "sha256:10b6237c8897674be96e29c63070823dde9e05b83a7ea609598c0d2ab6cdbd6a"},
-    {file = "simsimd-3.7.6-cp37-cp37m-win_amd64.whl", hash = "sha256:108a40a5b766b4f1fbe1ce48941e8597b081c9514005dd3551501ca807710a98"},
-    {file = "simsimd-3.7.6-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:ac6483f5402b0f1dd2210a260b129528eb8d51f9c56c91fc50a9b7652ccf5e2b"},
-    {file = "simsimd-3.7.6-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:f0f618b18e1585312d237059b85da7fa8c97575b3631f025704bf0eb972231b9"},
-    {file = "simsimd-3.7.6-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:0d37e96a938e23b761f845c63faa75fcc79ec36d4f2d6feded51850355845b16"},
-    {file = "simsimd-3.7.6-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:675afbc7b0c6213330e139b9ddf38b6788bd4ae5dcc16e917c375126fe1fb88c"},
-    {file = "simsimd-3.7.6-cp38-cp38-win_amd64.whl", hash = "sha256:88106c9339cfda9fa4dd9acd3ab386791e1b1b17f49ba2ce94c4b9a9704f1baa"},
-    {file = "simsimd-3.7.6-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:e6f247debdf9dff24f99dc3327318ed72861376c1119b0c84dd679e23a0be615"},
-    {file = "simsimd-3.7.6-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:2f700afcae6d80f4733594dd016dee20bdad6a1dba3065ed003424c3e5a245fb"},
-    {file = "simsimd-3.7.6-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:99d09d3ece687f99bec09297849cdba51aacbd3ab7c8cc4dcdcd5480204c2633"},
-    {file = "simsimd-3.7.6-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:8f6d072e49adadc9118d966d4beef624b919073e38a720d73db032a633dd5c70"},
-    {file = "simsimd-3.7.6-cp39-cp39-win_amd64.whl", hash = "sha256:0b998ab01f91e9c5e6dd56f85799ed779822cf11952c029c8228570bad4de8c8"},
+    {file = "simsimd-3.7.7-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1d0db6d9015d889f56335847c062891f77c8014bef35f2bd2df33a97df3e7205"},
+    {file = "simsimd-3.7.7-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:fd1f6113ac0824af909a5b55afeaa7c5974892d69d92e374f84e25e1c3d1de47"},
+    {file = "simsimd-3.7.7-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:9f5eb182b5c29b62f27a30b5281d192dd20448e4ad1894af4ffcdf37e2b5324d"},
+    {file = "simsimd-3.7.7-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:b4075478bd9b03499b0c9bafe3dfa7d2fdd4ea06268978bebda1585f71242d48"},
+    {file = "simsimd-3.7.7-cp310-cp310-win_amd64.whl", hash = "sha256:ec9dfe3dcb923cd21a6dc7c65afab66e7c85385659780283e1b9b8e74e5b3c71"},
+    {file = "simsimd-3.7.7-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:1c391229b40a5e936120fbe67ed6dc89eccb8ba08aeae59b40db36f110e34dd1"},
+    {file = "simsimd-3.7.7-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5c19d5d725f82349ad38752637605f223cabd957d68d5d903e64e96f1ce22ace"},
+    {file = "simsimd-3.7.7-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:4cf796a55dde69f73c7503ab9986bbd2f9f1470a8544c55ca8e9c87315fc90ad"},
+    {file = "simsimd-3.7.7-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:c8dab6b4668408e05c124454198fc94a6136e4d87f730a3c7cf41455604f50b4"},
+    {file = "simsimd-3.7.7-cp311-cp311-win_amd64.whl", hash = "sha256:2f5d9434475b731bee7a44fbc1cdfb63b318317c1ce555af36bb53c627e37e10"},
+    {file = "simsimd-3.7.7-cp312-cp312-macosx_10_9_x86_64.whl", hash = "sha256:f4cef75ac9eef474dbdbfee2dd9d0d532a95e795e6532f77907a6da28aef598f"},
+    {file = "simsimd-3.7.7-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:b213fbbf0ef069538fc210e2a99b02986da0f5f4d33612ae54551f715df0e587"},
+    {file = "simsimd-3.7.7-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:baabe738b1e4deb82084d5a751edb4902e5b34f01930c3370623299aa332c22b"},
+    {file = "simsimd-3.7.7-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:faf0290ac1700eb93384df523b65bbe0c8c5bbdb25c2df05e2b1a92ceda435e2"},
+    {file = "simsimd-3.7.7-cp312-cp312-win_amd64.whl", hash = "sha256:eb1a1ac7a4609bff6b873507381d2742b9b5d56b04d24ce39d602edb22367fe8"},
+    {file = "simsimd-3.7.7-cp36-cp36m-win_amd64.whl", hash = "sha256:9f940d4f2c6bb4548a7cbf7569a35f7515e0f507fb7fd1df4ae438c8c06a080c"},
+    {file = "simsimd-3.7.7-cp37-cp37m-win_amd64.whl", hash = "sha256:7c6a02ad368218042bc14d54adbe24206fd885d8a11d769593768db2b9e8fa51"},
+    {file = "simsimd-3.7.7-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:777d2186f527cd4cf1de1c2829958dbb0b2b02bca2424fa6faea131c97054506"},
+    {file = "simsimd-3.7.7-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:64d971c6a2d61e1493ca4a7693100dffa6ae7a92bc5b2c74cb832199ea3134c7"},
+    {file = "simsimd-3.7.7-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:64cce2dd171e63027c74e87d5c65c9db465a94def02db82df9be6cab3b6a2775"},
+    {file = "simsimd-3.7.7-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:1ea8c03e83811f6f7d69064a203e7f2bccfae55596ef0c78a6918c1247580467"},
+    {file = "simsimd-3.7.7-cp38-cp38-win_amd64.whl", hash = "sha256:149e5ead392704435acb510e59703fb0428e09890f6ddf5132f2d7c71a569ec8"},
+    {file = "simsimd-3.7.7-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:5d40ed51c021f4cb05fd24f40f7fae794b9c0586c756fb04e2c3c2d0c27b0eac"},
+    {file = "simsimd-3.7.7-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:e19fa6c05369ca4d018b22152813b57d93c1728b3e150b328f267119ae482fbb"},
+    {file = "simsimd-3.7.7-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:ce5ef1edb1820fdf5382372dd65d7c493eb9b32a69e23ee0a7b645be1279553c"},
+    {file = "simsimd-3.7.7-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:fcc814d1a04bf59d5fcd53bb32289fc7c922d86a6cfa5a1d9d94a1876472974b"},
+    {file = "simsimd-3.7.7-cp39-cp39-win_amd64.whl", hash = "sha256:a38b59d41ae4c66a9c11a7db28d6945fb8f7f7f4761823c27cdd740d95b31149"},
 ]
 
 [[package]]
