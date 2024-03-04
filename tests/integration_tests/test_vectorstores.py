@@ -1,4 +1,5 @@
 """Test Weaviate functionality."""
+
 import logging
 import os
 import re
@@ -690,7 +691,8 @@ def test_documents_with_many_properties(weaviate_client, embedding_openai):
     docsearch = WeaviateVectorStore(
         client=weaviate_client,
         index_name=index_name,
-        text_key=text_key,
+        # in default schema, "page_content" is stored in "text" property
+        text_key="text",
         embedding=embedding_openai,
     )
 
