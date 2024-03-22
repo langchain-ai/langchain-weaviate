@@ -8,7 +8,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 langchain-core = ">=0.0.12"
-weaviate-client = {version = "^4.0.0b", allow-prereleases = true}
+weaviate-client = ">4.5.4"
+langchain-community
 numpy = "^1.26.2"
 simsimd = "^3.6.1"
 
