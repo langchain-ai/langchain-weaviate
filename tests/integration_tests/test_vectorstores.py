@@ -802,3 +802,25 @@ def test_autocut(weaviate_client, embedding_openai, auto_limit, expected_num_doc
     run_similarity_test("similarity_search")
 
     run_similarity_test("similarity_search_with_score")
+
+
+def test_invalid_search_param(weaviate_client, embedding_openai):
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+    text_key = "page"
+    weaviate_vector_store = WeaviateVectorStore(
+        weaviate_client, index_name, text_key, embedding_openai
+    )
+
+    with pytest.raises(ValueError) as excinfo:
+        weaviate_vector_store._perform_search(query=None, k=5)
+
+    assert str(excinfo.value) == "Either query or vector must be provided."
+
+    with pytest.raises(ValueError) as excinfo:
+        weaviate_vector_store._perform_search(query=None, vector=None, k=5)
+
+    assert str(excinfo.value) == "Either query or vector must be provided."
+
+    weaviate_vector_store._perform_search(query="hello", vector=None, k=5)
+
+    weaviate_vector_store._perform_search(query=None, vector=[1, 2, 3], k=5)
