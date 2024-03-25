@@ -257,9 +257,7 @@ class WeaviateVectorStore(VectorStore):
                 elif search_method == "near_vector":
                     embedding = self._embedding.embed_query(query)
                     result = collection.query.near_vector(
-                        near_vector = embedding, 
-                        limit=k, 
-                        **kwargs
+                        near_vector=embedding, limit=k, **kwargs
                     )
                 else:
                     raise ValueError(f"Invalid search method: {search_method}")
