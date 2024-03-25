@@ -230,10 +230,10 @@ class WeaviateVectorStore(VectorStore):
         if self._embedding is None:
             raise ValueError("_embedding cannot be None for similarity_search")
 
-        if "return_metadata" in kwargs and "score" not in kwargs["return_metadata"]:
-            kwargs["return_metadata"].append("score")
-        else:
+        if "return_metadata" not in kwargs:
             kwargs["return_metadata"] = ["score"]
+        elif "score" not in kwargs["return_metadata"]:
+            kwargs["return_metadata"].append("score")
 
         if (
             "return_properties" in kwargs
@@ -241,9 +241,14 @@ class WeaviateVectorStore(VectorStore):
         ):
             kwargs["return_properties"].append(self._text_key)
 
-        # workaround to handle test_max_marginal_relevance_search
         vector = kwargs.pop("vector", None)
-        if vector is None and query is not None:
+        if vector is None and query is None:
+            # raise an error because weaviate will do a fetch object query
+            # if both query and vector are None
+            raise ValueError("Either query or vector must be provided.")
+
+        # workaround to handle test_max_marginal_relevance_search
+        if vector is None:
             vector = self._embedding.embed_query(query)
 
         return_uuids = kwargs.pop("return_uuids", False)
