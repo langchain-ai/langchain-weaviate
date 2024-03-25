@@ -288,7 +288,7 @@ def test_add_texts_with_given_embedding(
     )
 
     docsearch.add_texts(["foo"])
-    output = docsearch.similarity_search_by_vector(embedding.embed_query("foo"), k=2)
+    output = docsearch.similarity_search("foo", alpha=1, k=2)
     assert output == [
         Document(page_content="foo"),
         Document(page_content="foo"),
@@ -309,7 +309,7 @@ def test_add_texts_with_given_uuids(
 
     # Weaviate replaces the object if the UUID already exists
     docsearch.add_texts(["foo"], uuids=[uuids[0]])
-    output = docsearch.similarity_search_by_vector(embedding.embed_query("foo"), k=2)
+    output = docsearch.similarity_search("foo", alpha=1, k=2)
     assert output[0] == Document(page_content="foo")
     assert output[1] != Document(page_content="foo")
 

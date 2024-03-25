@@ -11,7 +11,6 @@ from typing import (
     Dict,
     Iterable,
     List,
-    Literal,
     Optional,
     Tuple,
     Union,
@@ -205,7 +204,6 @@ class WeaviateVectorStore(VectorStore):
         query: str,
         k: int,
         return_score=False,
-        search_method: Literal["hybrid", "near_vector"] = "hybrid",
         tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[Union[Document, Tuple[Document, float]]]:
@@ -217,8 +215,6 @@ class WeaviateVectorStore(VectorStore):
         k (int): The number of results to return.
         return_score (bool, optional): Whether to return the score along with the
           document. Defaults to False.
-        search_method (Literal['hybrid', 'near_vector'], optional): The search method
-          to use. Can be 'hybrid' or 'near_vector'. Defaults to 'hybrid'.
         tenant (Optional[str], optional): The tenant name. Defaults to None.
         **kwargs: Additional parameters to pass to the search method. These parameters
           will be directly passed to the underlying Weaviate client's search method.
@@ -245,19 +241,18 @@ class WeaviateVectorStore(VectorStore):
         ):
             kwargs["return_properties"].append(self._text_key)
 
+        # workaround to handle test_max_marginal_relevance_search
+        vector = kwargs.pop("vector", None)
+        if vector is None and query is not None:
+            vector = self._embedding.embed_query(query)
+
         return_uuids = kwargs.pop("return_uuids", False)
 
         with self._tenant_context(tenant) as collection:
             try:
-                if search_method == "hybrid":
-                    embedding = self._embedding.embed_query(query)
-                    result = collection.query.hybrid(
-                        query=query, vector=embedding, limit=k, **kwargs
-                    )
-                elif search_method == "near_vector":
-                    result = collection.query.near_vector(limit=k, **kwargs)
-                else:
-                    raise ValueError(f"Invalid search method: {search_method}")
+                result = collection.query.hybrid(
+                    query=query, vector=vector, limit=k, **kwargs
+                )
             except weaviate.exceptions.WeaviateQueryException as e:
                 raise ValueError(f"Error during query: {e}")
 
@@ -301,19 +296,6 @@ class WeaviateVectorStore(VectorStore):
 
         result = self._perform_search(query, k, **kwargs)
         return result
-
-    def similarity_search_by_vector(
-        self, embedding: List[float], k: int = 4, **kwargs: Any
-    ) -> List[Document]:
-        """Look up similar documents by embedding vector in Weaviate."""
-
-        return self._perform_search(
-            query=None,
-            k=k,
-            near_vector=embedding,
-            search_method="near_vector",
-            **kwargs,
-        )
 
     def max_marginal_relevance_search(
         self,
@@ -381,8 +363,7 @@ class WeaviateVectorStore(VectorStore):
             query=None,
             k=fetch_k,
             include_vector=True,
-            near_vector=embedding,
-            search_method="near_vector",
+            vector=embedding,
             **kwargs,
         )
 
