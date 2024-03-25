@@ -27,7 +27,7 @@ pytest-docker = ">=2.0.1,<4.0.0"
 pytest-xdist = "^3.5.0"
 openai = "^1.6.0"
 tiktoken = ">=0.5.2,<0.7.0"
-pytest-cov = "^4.1.0"
+pytest-cov = ">=4.1,<6.0"
 
 [tool.poetry.group.codespell]
 optional = true
@@ -42,7 +42,7 @@ optional = true
 ruff = ">=0.1.5,<0.4.0"
 
 [tool.poetry.group.typing.dependencies]
-mypy = ">=0.991,<1.9"
+mypy = ">=0.991,<1.10"
 
 [tool.poetry.group.dev]
 optional = true
