@@ -230,10 +230,10 @@ class WeaviateVectorStore(VectorStore):
         if self._embedding is None:
             raise ValueError("_embedding cannot be None for similarity_search")
 
-        if "return_metadata" in kwargs and "score" not in kwargs["return_metadata"]:
-            kwargs["return_metadata"].append("score")
-        else:
+        if "return_metadata" not in kwargs:
             kwargs["return_metadata"] = ["score"]
+        elif "score" not in kwargs["return_metadata"]:
+            kwargs["return_metadata"].append("score")
 
         if (
             "return_properties" in kwargs
