@@ -302,19 +302,6 @@ class WeaviateVectorStore(VectorStore):
         result = self._perform_search(query, k, **kwargs)
         return result
 
-    def similarity_search_by_vector(
-        self, embedding: List[float], k: int = 4, **kwargs: Any
-    ) -> List[Document]:
-        """Look up similar documents by embedding vector in Weaviate."""
-
-        return self._perform_search(
-            query=None,
-            k=k,
-            near_vector=embedding,
-            search_method="near_vector",
-            **kwargs,
-        )
-
     def max_marginal_relevance_search(
         self,
         query: str,
