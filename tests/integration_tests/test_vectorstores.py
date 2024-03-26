@@ -14,7 +14,7 @@ from langchain_openai import OpenAIEmbeddings
 
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 
-from .fake_embeddings import FakeEmbeddings
+from .fake_embeddings import ConsistentFakeEmbeddings, FakeEmbeddings
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -758,7 +758,7 @@ def test_ingest_bad_documents(weaviate_client, embedding_openai, caplog):
 
 
 @pytest.mark.parametrize("auto_limit, expected_num_docs", [(0, 4), (1, 3)])
-def test_autocut(weaviate_client, embedding_openai, auto_limit, expected_num_docs):
+def test_autocut(weaviate_client, auto_limit, expected_num_docs):
     index_name = f"TestIndex_{uuid.uuid4().hex}"
     text_key = "page_content"
 
@@ -780,7 +780,7 @@ def test_autocut(weaviate_client, embedding_openai, auto_limit, expected_num_doc
 
     docsearch = WeaviateVectorStore.from_texts(
         texts=texts,
-        embedding=embedding_openai,
+        embedding=ConsistentFakeEmbeddings(),
         client=weaviate_client,
         index_name=index_name,
         text_key=text_key,
