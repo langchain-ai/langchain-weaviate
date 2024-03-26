@@ -8,8 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
 langchain-core = ">=0.0.12"
-weaviate-client = ">4.5.4"
-langchain-community
+weaviate-client = "^4.0.0"
 numpy = "^1.26.2"
 simsimd = "^3.6.1"
 
@@ -28,7 +27,7 @@ pytest-docker = ">=2.0.1,<4.0.0"
 pytest-xdist = "^3.5.0"
 openai = "^1.6.0"
 tiktoken = ">=0.5.2,<0.7.0"
-pytest-cov = "^4.1.0"
+pytest-cov = ">=4.1,<6.0"
 
 [tool.poetry.group.codespell]
 optional = true
