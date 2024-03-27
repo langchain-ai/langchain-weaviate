@@ -10,7 +10,6 @@ import pytest
 import requests
 import weaviate
 from langchain_core.documents import Document
-from langchain_openai import OpenAIEmbeddings
 
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 
@@ -60,30 +59,6 @@ def weaviate_client(docker_ip, docker_services):
     client.close()
 
 
-@pytest.fixture(scope="session")
-def embedding_openai():
-    class MemoizedOpenAIEmbeddings(OpenAIEmbeddings):
-        def __init__(self):
-            super().__init__()
-            object.__setattr__(self, "cache", {})
-
-        def embed_query(self, query):
-            if query not in self.cache:
-                # Call the base class method if result not cached
-                self.cache[query] = super().embed_query(query)
-            return self.cache[query]
-
-        def embed_documents(self, documents):
-            # Use tuple to allow documents list to be hashable
-            hashable_docs = tuple(documents)
-            if hashable_docs not in self.cache:
-                # Call the base class method if result not cached
-                self.cache[hashable_docs] = super().embed_documents(documents)
-            return self.cache[hashable_docs]
-
-    yield MemoizedOpenAIEmbeddings()
-
-
 @pytest.fixture
 def texts():
     return ["foo", "bar", "baz"]
@@ -94,14 +69,20 @@ def embedding():
     return FakeEmbeddings()
 
 
+@pytest.fixture
+def consistent_embedding():
+    return ConsistentFakeEmbeddings()
+
+
 def test_similarity_search_without_metadata(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and search without metadata."""
     texts = ["foo", "bar", "baz"]
     docsearch = WeaviateVectorStore.from_texts(
         texts,
-        embedding_openai,
+        consistent_embedding,
         client=weaviate_client,
     )
 
@@ -110,26 +91,28 @@ def test_similarity_search_without_metadata(
 
 
 def test_similarity_search_with_metadata(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and search with metadata."""
     texts = ["foo", "bar", "baz"]
     metadatas = [{"page": i} for i in range(len(texts))]
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, metadatas=metadatas, client=weaviate_client
+        texts, consistent_embedding, metadatas=metadatas, client=weaviate_client
     )
     output = docsearch.similarity_search("foo", k=1)
     assert output == [Document(page_content="foo", metadata={"page": 0})]
 
 
 def test_similarity_search_with_metadata_and_filter(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and search with metadata."""
     texts = ["foo", "bar", "baz"]
     metadatas = [{"page": i} for i in range(len(texts))]
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, metadatas=metadatas, client=weaviate_client
+        texts, consistent_embedding, metadatas=metadatas, client=weaviate_client
     )
     output = docsearch.similarity_search(
         "foo", k=2, filters=weaviate.classes.query.Filter.by_property("page").equal(0)
@@ -138,13 +121,14 @@ def test_similarity_search_with_metadata_and_filter(
 
 
 def test_similarity_search_with_metadata_and_additional(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and search with metadata and additional."""
     texts = ["foo", "bar", "baz"]
     metadatas = [{"page": i} for i in range(len(texts))]
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, metadatas=metadatas, client=weaviate_client
+        texts, consistent_embedding, metadatas=metadatas, client=weaviate_client
     )
     output = docsearch.similarity_search(
         "foo",
@@ -159,7 +143,8 @@ def test_similarity_search_with_metadata_and_additional(
 
 
 def test_similarity_search_with_uuids(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and search with uuids."""
     texts = ["foo", "bar", "baz"]
@@ -169,7 +154,7 @@ def test_similarity_search_with_uuids(
     metadatas = [{"page": i} for i in range(len(texts))]
     docsearch = WeaviateVectorStore.from_texts(
         texts,
-        embedding_openai,
+        consistent_embedding,
         metadatas=metadatas,
         client=weaviate_client,
         uuids=uuids,
@@ -181,13 +166,13 @@ def test_similarity_search_with_uuids(
 def test_similarity_search_by_text(
     weaviate_client: weaviate.WeaviateClient,
     texts: List[str],
-    embedding_openai: OpenAIEmbeddings,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and search by text."""
 
     docsearch = WeaviateVectorStore.from_texts(
         texts,
-        embedding_openai,
+        consistent_embedding,
         client=weaviate_client,
     )
 
@@ -197,14 +182,15 @@ def test_similarity_search_by_text(
 
 
 def test_max_marginal_relevance_search(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and MRR search."""
     texts = ["foo", "bar", "baz"]
     metadatas = [{"page": i} for i in range(len(texts))]
 
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, metadatas=metadatas, client=weaviate_client
+        texts, consistent_embedding, metadatas=metadatas, client=weaviate_client
     )
     # if lambda=1 the algorithm should be equivalent to standard ranking
     standard_ranking = docsearch.similarity_search("foo", k=2)
@@ -224,16 +210,17 @@ def test_max_marginal_relevance_search(
 
 
 def test_max_marginal_relevance_search_by_vector(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and MRR search by vector."""
     texts = ["foo", "bar", "baz"]
     metadatas = [{"page": i} for i in range(len(texts))]
 
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, metadatas=metadatas, client=weaviate_client
+        texts, consistent_embedding, metadatas=metadatas, client=weaviate_client
     )
-    foo_embedding = embedding_openai.embed_query("foo")
+    foo_embedding = consistent_embedding.embed_query("foo")
 
     # if lambda=1 the algorithm should be equivalent to standard ranking
     standard_ranking = docsearch.similarity_search("foo", k=2)
@@ -253,14 +240,15 @@ def test_max_marginal_relevance_search_by_vector(
 
 
 def test_max_marginal_relevance_search_with_filter(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     """Test end to end construction and MRR search."""
     texts = ["foo", "bar", "baz"]
     metadatas = [{"page": i} for i in range(len(texts))]
 
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, metadatas=metadatas, client=weaviate_client
+        texts, consistent_embedding, metadatas=metadatas, client=weaviate_client
     )
 
     is_page_0_filter = weaviate.classes.query.Filter.by_property("page").equal(0)
@@ -368,7 +356,8 @@ def test_add_text_with_given_id(
 
 
 def test_similarity_search_with_score(
-    weaviate_client: weaviate.WeaviateClient, embedding_openai: OpenAIEmbeddings
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     texts = ["cat", "dog"]
 
@@ -384,7 +373,7 @@ def test_similarity_search_with_score(
 
     # now create an instance with an embedding
     docsearch = WeaviateVectorStore.from_texts(
-        texts, embedding_openai, client=weaviate_client
+        texts, consistent_embedding, client=weaviate_client
     )
 
     results = docsearch.similarity_search_with_score("kitty", k=1)
@@ -568,14 +557,14 @@ def test_simple_from_texts(
 
 
 def test_search_with_multi_tenancy(
-    weaviate_client: weaviate.WeaviateClient, texts: List[str], embedding_openai
+    weaviate_client: weaviate.WeaviateClient, texts: List[str], consistent_embedding
 ) -> None:
     index_name = f"Index_{uuid.uuid4().hex}"
     tenant_name = "Foo"
 
     docsearch = WeaviateVectorStore.from_texts(
         texts,
-        embedding=embedding_openai,
+        embedding=consistent_embedding,
         client=weaviate_client,
         index_name=index_name,
         tenant=tenant_name,
@@ -631,7 +620,7 @@ def test_invalid_client_type():
     )
 
 
-def test_embedding_property(weaviate_client, embedding_openai):
+def test_embedding_property(weaviate_client, consistent_embedding):
     index_name = "test_index"
     text_key = "text"
 
@@ -639,13 +628,13 @@ def test_embedding_property(weaviate_client, embedding_openai):
         client=weaviate_client,
         index_name=index_name,
         text_key=text_key,
-        embedding=embedding_openai,
+        embedding=consistent_embedding,
     )
 
-    assert type(docsearch.embeddings) == type(embedding_openai)
+    assert type(docsearch.embeddings) == type(consistent_embedding)
 
 
-def test_documents_with_many_properties(weaviate_client, embedding_openai):
+def test_documents_with_many_properties(weaviate_client, consistent_embedding):
     data = [
         {
             "aliases": ["Big Tech Co", "Tech Giant"],
@@ -693,7 +682,7 @@ def test_documents_with_many_properties(weaviate_client, embedding_openai):
         index_name=index_name,
         # in default schema, "page_content" is stored in "text" property
         text_key="text",
-        embedding=embedding_openai,
+        embedding=consistent_embedding,
     )
 
     texts = [doc["page_content"] for doc in data]
@@ -717,7 +706,7 @@ def test_documents_with_many_properties(weaviate_client, embedding_openai):
     assert set(doc.metadata.keys()) == {"uuid", "ticker", "categoryid"}
 
 
-def test_ingest_bad_documents(weaviate_client, embedding_openai, caplog):
+def test_ingest_bad_documents(weaviate_client, consistent_embedding, caplog):
     # try to ingest 2 documents
     docs = [
         Document(page_content="foo", metadata={"page": 0}),
@@ -731,7 +720,7 @@ def test_ingest_bad_documents(weaviate_client, embedding_openai, caplog):
     with caplog.at_level(logging.ERROR):
         _ = WeaviateVectorStore.from_documents(
             documents=docs,
-            embedding=embedding_openai,
+            embedding=consistent_embedding,
             client=weaviate_client,
             index_name=index_name,
             text_key=text_key,
@@ -804,11 +793,11 @@ def test_autocut(weaviate_client, auto_limit, expected_num_docs):
     run_similarity_test("similarity_search_with_score")
 
 
-def test_invalid_search_param(weaviate_client, embedding_openai):
+def test_invalid_search_param(weaviate_client, consistent_embedding):
     index_name = f"TestIndex_{uuid.uuid4().hex}"
     text_key = "page"
     weaviate_vector_store = WeaviateVectorStore(
-        weaviate_client, index_name, text_key, embedding_openai
+        weaviate_client, index_name, text_key, consistent_embedding
     )
 
     with pytest.raises(ValueError) as excinfo:
