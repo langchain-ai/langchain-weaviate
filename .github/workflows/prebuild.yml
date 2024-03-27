@@ -44,4 +44,4 @@ jobs:
           poetry run pytest -n `nproc` \
             --cov=langchain_weaviate \
             --cov-report term-missing \
-            --cov-fail-under=94.59
+            --cov-fail-under=96.44
