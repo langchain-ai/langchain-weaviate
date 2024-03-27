@@ -34,7 +34,7 @@ class ConsistentFakeEmbeddings(FakeEmbeddings):
     vectors for the same texts."""
 
     def __init__(self) -> None:
-        with open("./fake_docs.json", "r") as f:
+        with open("./tests/integration_tests/fake_docs.json", "r") as f:
             self.known_texts: Dict[str, List[float]] = json.load(f)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
