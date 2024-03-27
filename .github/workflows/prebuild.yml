@@ -45,5 +45,3 @@ jobs:
             --cov=langchain_weaviate \
             --cov-report term-missing \
             --cov-fail-under=94.59
-        env:
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY_FROM_WEAVIATE }}

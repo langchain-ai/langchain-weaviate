@@ -1,7 +1,6 @@
 """Test Weaviate functionality."""
 
 import logging
-import os
 import re
 import uuid
 from typing import List, Union
@@ -19,8 +18,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def setup_module(module):
-    if "OPENAI_API_KEY" not in os.environ:
-        raise EnvironmentError("OPENAI_API_KEY must be defined before running tests")
+    pass
 
 
 def is_ready(url):
