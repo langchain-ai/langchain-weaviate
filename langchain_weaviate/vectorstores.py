@@ -23,7 +23,7 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
 
-from .utils import maximal_marginal_relevance
+from langchain_weaviate.utils import maximal_marginal_relevance
 
 if TYPE_CHECKING:
     import weaviate
