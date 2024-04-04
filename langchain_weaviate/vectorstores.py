@@ -18,7 +18,7 @@ from typing import (
 from uuid import uuid4
 
 import numpy as np
-import weaviate
+import weaviate  # type: ignore
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
@@ -147,7 +147,7 @@ class WeaviateVectorStore(VectorStore):
         **kwargs: Any,
     ) -> List[str]:
         """Upload texts with metadata (properties) to Weaviate."""
-        from weaviate.util import get_valid_uuid
+        from weaviate.util import get_valid_uuid  # type: ignore
 
         if tenant and not self._does_tenant_exist(tenant):
             logger.info(
@@ -160,7 +160,7 @@ class WeaviateVectorStore(VectorStore):
         ids = []
         embeddings: Optional[List[List[float]]] = None
         if self._embedding:
-            embeddings = self._embedding.embed_documents(texts)
+            embeddings = self._embedding.embed_documents(list(texts))
 
         with self._client.batch.dynamic() as batch:
             for i, text in enumerate(texts):
@@ -203,7 +203,7 @@ class WeaviateVectorStore(VectorStore):
         self,
         query: str,
         k: int,
-        return_score=False,
+        return_score: bool = False,
         tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[Union[Document, Tuple[Document, float]]]:
@@ -261,7 +261,7 @@ class WeaviateVectorStore(VectorStore):
             except weaviate.exceptions.WeaviateQueryException as e:
                 raise ValueError(f"Error during query: {e}")
 
-        docs = []
+        docs: List[Union[Document, Tuple[Document, float]]] = []
         for obj in result.objects:
             text = obj.properties.pop(self._text_key)
             filtered_metadata = {

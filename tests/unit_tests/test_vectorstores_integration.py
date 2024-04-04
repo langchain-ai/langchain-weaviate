@@ -3,7 +3,7 @@
 import logging
 import re
 import uuid
-from typing import List, Union
+from typing import Any, List, Union
 
 import pytest
 import requests
@@ -17,11 +17,11 @@ from .fake_embeddings import ConsistentFakeEmbeddings, FakeEmbeddings
 logging.basicConfig(level=logging.DEBUG)
 
 
-def setup_module(module):
+def setup_module(module: Any) -> None:
     pass
 
 
-def is_ready(url):
+def is_ready(url: str) -> bool:
     try:
         response = requests.get(url)
         if response.status_code == 200:
@@ -31,7 +31,7 @@ def is_ready(url):
 
 
 @pytest.fixture(scope="function")
-def weaviate_client(docker_ip, docker_services):
+def weaviate_client(docker_ip: Any, docker_services: Any) -> Any:
     http_port = docker_services.port_for("weaviate", 8080)
     grpc_port = docker_services.port_for("weaviate", 50051)
     url = f"http://{docker_ip}:{http_port}"
@@ -58,17 +58,17 @@ def weaviate_client(docker_ip, docker_services):
 
 
 @pytest.fixture
-def texts():
+def texts() -> List[str]:
     return ["foo", "bar", "baz"]
 
 
 @pytest.fixture
-def embedding():
+def embedding() -> FakeEmbeddings:
     return FakeEmbeddings()
 
 
 @pytest.fixture
-def consistent_embedding():
+def consistent_embedding() -> ConsistentFakeEmbeddings:
     return ConsistentFakeEmbeddings()
 
 
@@ -488,7 +488,7 @@ def test_add_texts_with_multi_tenancy(
     weaviate_client: weaviate.WeaviateClient,
     texts: List[str],
     embedding: FakeEmbeddings,
-    caplog,
+    caplog: Any,
 ) -> None:
     index_name = "TestMultiTenancy"
     tenant_name = "Foo"
