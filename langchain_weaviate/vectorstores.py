@@ -11,9 +11,11 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     Optional,
     Tuple,
     Union,
+    overload,
 )
 from uuid import uuid4
 
@@ -86,7 +88,7 @@ class WeaviateVectorStore(VectorStore):
     def __init__(
         self,
         client: weaviate.WeaviateClient,
-        index_name: str,
+        index_name: Optional[str],
         text_key: str,
         embedding: Optional[Embeddings] = None,
         attributes: Optional[List[str]] = None,
@@ -199,14 +201,32 @@ class WeaviateVectorStore(VectorStore):
 
         return ids
 
+    @overload
     def _perform_search(
         self,
-        query: str,
+        query: Optional[str],
+        k: int,
+        return_score: Literal[False] = False,
+        tenant: Optional[str] = None,
+        **kwargs: Any,
+    ) -> List[Document]: ...
+    @overload
+    def _perform_search(
+        self,
+        query: Optional[str],
+        k: int,
+        return_score: Literal[True],
+        tenant: Optional[str] = None,
+        **kwargs: Any,
+    ) -> List[Tuple[Document, float]]: ...
+    def _perform_search(
+        self,
+        query: Optional[str],
         k: int,
         return_score: bool = False,
         tenant: Optional[str] = None,
         **kwargs: Any,
-    ) -> List[Union[Document, Tuple[Document, float]]]:
+    ) -> Union[List[Document], List[Tuple[Document, float]]]:
         """
         Perform a similarity search.
 
@@ -242,14 +262,15 @@ class WeaviateVectorStore(VectorStore):
             kwargs["return_properties"].append(self._text_key)
 
         vector = kwargs.pop("vector", None)
-        if vector is None and query is None:
-            # raise an error because weaviate will do a fetch object query
-            # if both query and vector are None
-            raise ValueError("Either query or vector must be provided.")
 
         # workaround to handle test_max_marginal_relevance_search
         if vector is None:
-            vector = self._embedding.embed_query(query)
+            if query is None:
+                # raise an error because weaviate will do a fetch object query
+                # if both query and vector are None
+                raise ValueError("Either query or vector must be provided.")
+            else:
+                vector = self._embedding.embed_query(query)
 
         return_uuids = kwargs.pop("return_uuids", False)
 
@@ -261,7 +282,7 @@ class WeaviateVectorStore(VectorStore):
             except weaviate.exceptions.WeaviateQueryException as e:
                 raise ValueError(f"Error during query: {e}")
 
-        docs: List[Union[Document, Tuple[Document, float]]] = []
+        docs_and_scores: List[Tuple[Document, float]] = []
         for obj in result.objects:
             text = obj.properties.pop(self._text_key)
             filtered_metadata = {
@@ -276,13 +297,13 @@ class WeaviateVectorStore(VectorStore):
                 **({"uuid": str(obj.uuid)} if return_uuids else {}),
             }
             doc = Document(page_content=text, metadata=merged_props)
-            if not return_score:
-                docs.append(doc)
-            else:
-                score = obj.metadata.score
-                docs.append((doc, score))
+            score = obj.metadata.score
+            docs_and_scores.append((doc, score))
 
-        return docs
+        if return_score:
+            return docs_and_scores
+        else:
+            return [doc for doc, _ in docs_and_scores]
 
     def similarity_search(
         self, query: str, k: int = 4, **kwargs: Any
@@ -403,11 +424,11 @@ class WeaviateVectorStore(VectorStore):
     def from_texts(
         cls,
         texts: List[str],
-        embedding: Embeddings,
-        client: weaviate.WeaviateClient = None,
+        embedding: Optional[Embeddings],
         metadatas: Optional[List[dict]] = None,
-        tenant: Optional[str] = None,
         *,
+        tenant: Optional[str] = None,
+        client: weaviate.WeaviateClient = None,
         index_name: Optional[str] = None,
         text_key: str = "text",
         relevance_score_fn: Optional[

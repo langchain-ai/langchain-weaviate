@@ -3,11 +3,11 @@
 import logging
 import re
 import uuid
-from typing import Any, List, Union
+from typing import Any, List, Optional, Union, cast
 
 import pytest
 import requests
-import weaviate
+import weaviate  # type: ignore
 from langchain_core.documents import Document
 
 from langchain_weaviate.vectorstores import WeaviateVectorStore
@@ -27,7 +27,8 @@ def is_ready(url: str) -> bool:
         if response.status_code == 200:
             return True
     except requests.exceptions.ConnectionError:
-        return False
+        pass
+    return False
 
 
 @pytest.fixture(scope="function")
@@ -267,7 +268,9 @@ def test_max_marginal_relevance_search_with_filter(
 
 
 def test_add_texts_with_given_embedding(
-    weaviate_client: weaviate.WeaviateClient, texts, embedding
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
 ) -> None:
     docsearch = WeaviateVectorStore.from_texts(
         texts, embedding=embedding, client=weaviate_client
@@ -282,7 +285,9 @@ def test_add_texts_with_given_embedding(
 
 
 def test_add_texts_with_given_uuids(
-    weaviate_client: weaviate.WeaviateClient, texts, embedding
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
 ) -> None:
     uuids = [uuid.uuid5(uuid.NAMESPACE_DNS, text) for text in texts]
 
@@ -301,7 +306,9 @@ def test_add_texts_with_given_uuids(
 
 
 def test_add_texts_with_metadata(
-    weaviate_client: weaviate.WeaviateClient, texts, embedding
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
 ) -> None:
     """
     Test that the text's metadata ends up in Weaviate too
@@ -330,7 +337,9 @@ def test_add_texts_with_metadata(
 
 
 def test_add_text_with_given_id(
-    weaviate_client: weaviate.WeaviateClient, texts, embedding
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    embedding: FakeEmbeddings,
 ) -> None:
     """
     Test that the text's id ends up in Weaviate too
@@ -430,7 +439,7 @@ def test_delete(
 
 @pytest.mark.parametrize("use_multi_tenancy", [True, False])
 def test_enable_multi_tenancy(
-    use_multi_tenancy,
+    use_multi_tenancy: bool,
     weaviate_client: weaviate.WeaviateClient,
     embedding: FakeEmbeddings,
 ) -> None:
@@ -535,8 +544,8 @@ def test_add_texts_with_multi_tenancy(
     "use_multi_tenancy, tenant_name", [(True, "Foo"), (False, None)]
 )
 def test_simple_from_texts(
-    use_multi_tenancy,
-    tenant_name,
+    use_multi_tenancy: bool,
+    tenant_name: Optional[str],
     weaviate_client: weaviate.WeaviateClient,
     texts: List[str],
     embedding: FakeEmbeddings,
@@ -555,7 +564,9 @@ def test_simple_from_texts(
 
 
 def test_search_with_multi_tenancy(
-    weaviate_client: weaviate.WeaviateClient, texts: List[str], consistent_embedding
+    weaviate_client: weaviate.WeaviateClient,
+    texts: List[str],
+    consistent_embedding: ConsistentFakeEmbeddings,
 ) -> None:
     index_name = f"Index_{uuid.uuid4().hex}"
     tenant_name = "Foo"
@@ -600,7 +611,7 @@ def test_search_with_multi_tenancy(
         docsearch.similarity_search("foo", k=1)
 
 
-def test_invalid_client_type():
+def test_invalid_client_type() -> None:
     with pytest.raises(ValueError) as excinfo:
         invalid_client = "invalid_client"
         index_name = "test_index"
@@ -618,7 +629,9 @@ def test_invalid_client_type():
     )
 
 
-def test_embedding_property(weaviate_client, consistent_embedding):
+def test_embedding_property(
+    weaviate_client: Any, consistent_embedding: ConsistentFakeEmbeddings
+) -> None:
     index_name = "test_index"
     text_key = "text"
 
@@ -632,7 +645,9 @@ def test_embedding_property(weaviate_client, consistent_embedding):
     assert type(docsearch.embeddings) == type(consistent_embedding)
 
 
-def test_documents_with_many_properties(weaviate_client, consistent_embedding):
+def test_documents_with_many_properties(
+    weaviate_client: Any, consistent_embedding: ConsistentFakeEmbeddings
+) -> None:
     data = [
         {
             "aliases": ["Big Tech Co", "Tech Giant"],
@@ -683,7 +698,7 @@ def test_documents_with_many_properties(weaviate_client, consistent_embedding):
         embedding=consistent_embedding,
     )
 
-    texts = [doc["page_content"] for doc in data]
+    texts: List[str] = [cast(str, doc["page_content"]) for doc in data]
     metadatas = [{k: doc[k] for k in doc if k != "page_content"} for doc in data]
     doc_ids = docsearch.add_texts(texts, metadatas=metadatas, uuids=uuids)
 
@@ -704,7 +719,9 @@ def test_documents_with_many_properties(weaviate_client, consistent_embedding):
     assert set(doc.metadata.keys()) == {"uuid", "ticker", "categoryid"}
 
 
-def test_ingest_bad_documents(weaviate_client, consistent_embedding, caplog):
+def test_ingest_bad_documents(
+    weaviate_client: Any, consistent_embedding: ConsistentFakeEmbeddings, caplog: Any
+) -> None:
     # try to ingest 2 documents
     docs = [
         Document(page_content="foo", metadata={"page": 0}),
@@ -745,7 +762,7 @@ def test_ingest_bad_documents(weaviate_client, consistent_embedding, caplog):
 
 
 @pytest.mark.parametrize("auto_limit, expected_num_docs", [(0, 4), (1, 3)])
-def test_autocut(weaviate_client, auto_limit, expected_num_docs):
+def test_autocut(weaviate_client: Any, auto_limit: int, expected_num_docs: int) -> None:
     index_name = f"TestIndex_{uuid.uuid4().hex}"
     text_key = "page_content"
 
@@ -773,7 +790,7 @@ def test_autocut(weaviate_client, auto_limit, expected_num_docs):
         text_key=text_key,
     )
 
-    def run_similarity_test(search_method):
+    def run_similarity_test(search_method: str) -> None:
         f = getattr(docsearch, search_method)
         results = f(
             query=query,
@@ -791,7 +808,9 @@ def test_autocut(weaviate_client, auto_limit, expected_num_docs):
     run_similarity_test("similarity_search_with_score")
 
 
-def test_invalid_search_param(weaviate_client, consistent_embedding):
+def test_invalid_search_param(
+    weaviate_client: Any, consistent_embedding: ConsistentFakeEmbeddings
+) -> None:
     index_name = f"TestIndex_{uuid.uuid4().hex}"
     text_key = "page"
     weaviate_vector_store = WeaviateVectorStore(
