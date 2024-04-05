@@ -4,9 +4,6 @@
 all: help
 
 # Define a variable for the test file path.
-TEST_FILE ?= tests/unit_tests/
-
-integration_test integration_tests: TEST_FILE=tests/integration_tests/
 
 # test:
 # 	poetry run pytest $(TEST_FILE)
@@ -31,7 +28,14 @@ update-weaviate-image:
 		echo "No update required. Current Weaviate version is already $(LATEST_VERSION)"; \
 	fi
 
-test tests integration_test integration_tests: update-weaviate-image
+TEST_FILE ?= tests/unit_tests/
+
+integration_test integration_tests: TEST_FILE=tests/integration_tests/
+
+test tests: update-weaviate-image
+	poetry run pytest $(TEST_FILE) --cov=langchain_weaviate --cov-report term-missing --cov-fail-under=96.44
+
+integration_test integration_tests: update-weaviate-image
 	poetry run pytest $(TEST_FILE) --cov=langchain_weaviate --cov-report term-missing
 
 ######################
