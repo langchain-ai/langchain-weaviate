@@ -12,7 +12,7 @@ on:
       working-directory:
         required: true
         type: string
-        default: '.'
+        default: 'libs/weaviate'
 
 env:
   PYTHON_VERSION: "3.11"
