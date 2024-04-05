@@ -43,6 +43,7 @@ ruff = ">=0.1.5,<0.4.0"
 
 [tool.poetry.group.typing.dependencies]
 mypy = ">=0.991,<1.10"
+types-requests = "^2.31.0.20240403"
 
 [tool.poetry.group.dev]
 optional = true

@@ -3,7 +3,7 @@ import numpy as np
 from langchain_weaviate._math import cosine_similarity_top_k
 
 
-def test_cosine_similarity_top_k():
+def test_cosine_similarity_top_k() -> None:
     X = np.array([[1, 0], [0, 1]])
     Y = np.array([[0, 1], [1, 0]])
 

@@ -1,4 +1,5 @@
 import datetime
+from typing import Union
 
 import numpy as np
 import pytest
@@ -10,7 +11,7 @@ from langchain_weaviate.vectorstores import (
 
 
 @pytest.mark.parametrize("val, expected_result", [(1e6, 1.0), (-1e6, 0.0)])
-def test_default_score_normalizer(val, expected_result):
+def test_default_score_normalizer(val: float, expected_result: float) -> None:
     assert np.isclose(_default_score_normalizer(val), expected_result, atol=1e-6)
 
 
@@ -23,5 +24,8 @@ def test_default_score_normalizer(val, expected_result):
         (None, None),
     ],
 )
-def test_json_serializable(value, expected_result):
+def test_json_serializable(
+    value: Union[datetime.datetime, str, int, None],
+    expected_result: Union[str, int, None],
+) -> None:
     assert _json_serializable(value) == expected_result

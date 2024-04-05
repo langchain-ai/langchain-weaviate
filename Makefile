@@ -6,7 +6,7 @@ all: help
 # Define a variable for the test file path.
 TEST_FILE ?= tests/unit_tests/
 
-integration_tests: TEST_FILE=tests/integration_tests/
+integration_test integration_tests: TEST_FILE=tests/integration_tests/
 
 # test:
 # 	poetry run pytest $(TEST_FILE)
@@ -31,12 +31,8 @@ update-weaviate-image:
 		echo "No update required. Current Weaviate version is already $(LATEST_VERSION)"; \
 	fi
 
-test: update-weaviate-image
-	poetry run pytest -n `nproc` --cov=langchain_weaviate --cov-report term-missing
-
-tests integration_tests:
-	poetry run pytest $(TEST_FILE)
-
+test tests integration_test integration_tests: update-weaviate-image
+	poetry run pytest $(TEST_FILE) --cov=langchain_weaviate --cov-report term-missing
 
 ######################
 # LINTING AND FORMATTING
@@ -46,20 +42,20 @@ tests integration_tests:
 PYTHON_FILES=.
 MYPY_CACHE=.mypy_cache
 lint format: PYTHON_FILES=.
-lint_diff format_diff: PYTHON_FILES=$(shell git diff --relative=libs/partners/weaviate --name-only --diff-filter=d master | grep -E '\.py$$|\.ipynb$$')
+lint_diff format_diff: PYTHON_FILES=$(shell git diff --name-only --diff-filter=d master | grep -E '\.py$$|\.ipynb$$')
 lint_package: PYTHON_FILES=langchain_weaviate
 lint_tests: PYTHON_FILES=tests
 lint_tests: MYPY_CACHE=.mypy_cache_test
 
 lint lint_diff lint_package lint_tests:
-	poetry run ruff .
+	poetry run ruff check .
 	poetry run ruff format $(PYTHON_FILES) --diff
-	poetry run ruff --select I $(PYTHON_FILES)
+	poetry run ruff check --select I $(PYTHON_FILES)
 	mkdir $(MYPY_CACHE); poetry run mypy $(PYTHON_FILES) --cache-dir $(MYPY_CACHE)
 
 format format_diff:
 	poetry run ruff format $(PYTHON_FILES)
-	poetry run ruff --fix $(PYTHON_FILES)
+	poetry run ruff check --fix $(PYTHON_FILES)
 
 spell_check:
 	poetry run codespell --toml pyproject.toml

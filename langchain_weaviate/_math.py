@@ -4,7 +4,7 @@ import logging
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
-import simsimd
+import simsimd  # type: ignore
 
 logger = logging.getLogger(__name__)
 
