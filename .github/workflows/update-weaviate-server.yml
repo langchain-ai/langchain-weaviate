@@ -21,6 +21,7 @@ jobs:
 
     - name: Update Image
       run: make update-weaviate-image
+      working-directory: libs/weaviate
 
     - name: Commit and push if changed
       run: |
@@ -33,6 +34,7 @@ jobs:
           git commit -m "Update Weaviate version in tests/docker-compose.yml" && 
           git push --set-upstream origin ${{ env.SOURCE_BRANCH_NAME }}
         )
+      working-directory: libs/weaviate
 
     - name: Create Pull Request
       if: ${{ env.CHANGED == 'true' }}
