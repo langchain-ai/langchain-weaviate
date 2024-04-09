@@ -33,6 +33,7 @@ pytest-xdist = "^3.5.0"
 openai = "^1.6.0"
 tiktoken = ">=0.5.2,<0.7.0"
 pytest-cov = ">=4.1,<6.0"
+langchain-core = {git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core"}
 
 [tool.poetry.group.codespell]
 optional = true
@@ -49,12 +50,14 @@ ruff = ">=0.1.5,<0.4.0"
 [tool.poetry.group.typing.dependencies]
 mypy = ">=0.991,<1.10"
 types-requests = "^2.31.0.20240403"
+langchain-core = {git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core"}
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.27.1"
+langchain-core = {git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core"}
 
 [tool.poetry.group.test_integration]
 optional = true
