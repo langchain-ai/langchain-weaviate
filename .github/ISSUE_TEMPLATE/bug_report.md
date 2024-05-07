@@ -33,6 +33,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Tech Stack (please complete the following information):**
 - weaviate server version:
+- weaviate client version:
 - weaviate modules enabled e.g. txt2vec-openai:
 - langchain-weaviate version:
 - langchain version:
