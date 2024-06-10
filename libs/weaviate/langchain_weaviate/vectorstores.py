@@ -92,6 +92,7 @@ class WeaviateVectorStore(VectorStore):
         text_key: str,
         embedding: Optional[Embeddings] = None,
         attributes: Optional[List[str]] = None,
+        vectorizer: Optional[str] = None,
         relevance_score_fn: Optional[
             Callable[[float], float]
         ] = _default_score_normalizer,
@@ -115,7 +116,8 @@ class WeaviateVectorStore(VectorStore):
 
         schema = _default_schema(self._index_name)
         schema["MultiTenancyConfig"] = {"enabled": use_multi_tenancy}
-
+        if vectorizer:
+            schema["vectorizer"] = vectorizer
         # check whether the index already exists
         if not client.collections.exists(self._index_name):
             client.collections.create_from_dict(schema)
