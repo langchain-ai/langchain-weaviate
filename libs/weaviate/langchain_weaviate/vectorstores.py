@@ -161,7 +161,7 @@ class WeaviateVectorStore(VectorStore):
 
         ids = []
         embeddings: Optional[List[List[float]]] = None
-        if self._embedding:
+        if self._embedding and texts:
             embeddings = self._embedding.embed_documents(list(texts))
 
         with self._client.batch.dynamic() as batch:
@@ -471,7 +471,6 @@ class WeaviateVectorStore(VectorStore):
                     client=client
                 )
         """
-
         attributes = list(metadatas[0].keys()) if metadatas else None
 
         weaviate_vector_store = cls(
