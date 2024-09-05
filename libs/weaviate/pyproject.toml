@@ -12,7 +12,7 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4.0"
-langchain-core = ">=0.1.33,<0.3"
+langchain-core = { version = "^0.3.0.dev1", allow-prereleases = true }
 weaviate-client = "^4.0.0"
 numpy = "^1.26.2"
 simsimd = ">=3.6.1,<5.0.0"
