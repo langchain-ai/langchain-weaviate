@@ -1297,7 +1297,7 @@ test = ["ipykernel", "pre-commit", "pytest (<8)", "pytest-cov", "pytest-timeout"
 
 [[package]]
 name = "langchain"
-version = "0.3.0.dev1"
+version = "0.3.0"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = ">=3.9,<4.0"
@@ -1307,8 +1307,8 @@ develop = false
 [package.dependencies]
 aiohttp = "^3.8.3"
 async-timeout = {version = "^4.0.0", markers = "python_version < \"3.11\""}
-langchain-core = "^0.3.0.dev2"
-langchain-text-splitters = "^0.3.0.dev1"
+langchain-core = "^0.3.0"
+langchain-text-splitters = "^0.3.0"
 langsmith = "^0.1.17"
 numpy = [
     {version = ">=1,<2", markers = "python_version < \"3.12\""},
@@ -1323,13 +1323,13 @@ tenacity = "^8.1.0,!=8.4.0"
 [package.source]
 type = "git"
 url = "https://github.com/langchain-ai/langchain.git"
-reference = "v0.3rc"
-resolved_reference = "6208773c77060c6604c267ad51dcc34000984fa9"
+reference = "HEAD"
+resolved_reference = "a319a0ff1d17057d750f7e4a8fee98aa8f68703c"
 subdirectory = "libs/langchain"
 
 [[package]]
 name = "langchain-core"
-version = "0.3.0.dev4"
+version = "0.3.0"
 description = "Building applications with LLMs through composability"
 optional = false
 python-versions = ">=3.9,<4.0"
@@ -1338,9 +1338,12 @@ develop = false
 
 [package.dependencies]
 jsonpatch = "^1.33"
-langsmith = "^0.1.112"
+langsmith = "^0.1.117"
 packaging = ">=23.2,<25"
-pydantic = "^2.7.4"
+pydantic = [
+    {version = ">=2.5.2,<3.0.0", markers = "python_full_version < \"3.12.4\""},
+    {version = ">=2.7.4,<3.0.0", markers = "python_full_version >= \"3.12.4\""},
+]
 PyYAML = ">=5.3"
 tenacity = "^8.1.0,!=8.4.0"
 typing-extensions = ">=4.7"
@@ -1348,13 +1351,13 @@ typing-extensions = ">=4.7"
 [package.source]
 type = "git"
 url = "https://github.com/langchain-ai/langchain.git"
-reference = "v0.3rc"
-resolved_reference = "6208773c77060c6604c267ad51dcc34000984fa9"
+reference = "HEAD"
+resolved_reference = "a319a0ff1d17057d750f7e4a8fee98aa8f68703c"
 subdirectory = "libs/core"
 
 [[package]]
 name = "langchain-openai"
-version = "0.2.0.dev2"
+version = "0.2.0"
 description = "An integration package connecting OpenAI and LangChain"
 optional = false
 python-versions = ">=3.9,<4.0"
@@ -1362,20 +1365,20 @@ files = []
 develop = false
 
 [package.dependencies]
-langchain-core = "^0.3.0.dev1"
+langchain-core = "^0.3"
 openai = "^1.40.0"
 tiktoken = ">=0.7,<1"
 
 [package.source]
 type = "git"
 url = "https://github.com/langchain-ai/langchain.git"
-reference = "v0.3rc"
-resolved_reference = "6208773c77060c6604c267ad51dcc34000984fa9"
+reference = "HEAD"
+resolved_reference = "a319a0ff1d17057d750f7e4a8fee98aa8f68703c"
 subdirectory = "libs/partners/openai"
 
 [[package]]
 name = "langchain-text-splitters"
-version = "0.3.0.dev1"
+version = "0.3.0"
 description = "LangChain text splitting utilities"
 optional = false
 python-versions = ">=3.9,<4.0"
@@ -1383,24 +1386,24 @@ files = []
 develop = false
 
 [package.dependencies]
-langchain-core = "^0.3.0.dev1"
+langchain-core = "^0.3.0"
 
 [package.source]
 type = "git"
 url = "https://github.com/langchain-ai/langchain.git"
-reference = "v0.3rc"
-resolved_reference = "6208773c77060c6604c267ad51dcc34000984fa9"
+reference = "HEAD"
+resolved_reference = "a319a0ff1d17057d750f7e4a8fee98aa8f68703c"
 subdirectory = "libs/text-splitters"
 
 [[package]]
 name = "langsmith"
-version = "0.1.114"
+version = "0.1.121"
 description = "Client library to connect to the LangSmith LLM Tracing and Evaluation Platform."
 optional = false
 python-versions = "<4.0,>=3.8.1"
 files = [
-    {file = "langsmith-0.1.114-py3-none-any.whl", hash = "sha256:2b6b6b49ddb1cea75f465da107ddc21e60d3c7242813dcc0de90f914e4957249"},
-    {file = "langsmith-0.1.114.tar.gz", hash = "sha256:1683e1505d034d1bf7c960067c1357fd0d294172dd20540f913093e4b86857a2"},
+    {file = "langsmith-0.1.121-py3-none-any.whl", hash = "sha256:fdb1ac8a671d3904201bfeea197d87bded46a10d08f1034af464211872e29893"},
+    {file = "langsmith-0.1.121.tar.gz", hash = "sha256:e9381b82a5bd484af9a51c3e96faea572746b8d617b070c1cda40cbbe48e33df"},
 ]
 
 [package.dependencies]
@@ -3183,4 +3186,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<4.0"
-content-hash = "59cb0ed3e5a51eaf48e7b73d3704afdc616efa2e1a8a54c720c250fcb4419bc5"
+content-hash = "a475905d47b78a1b73dd523d57500f33c860344b94e5d017bcef6aef5cf12d06"
