@@ -15,7 +15,7 @@ python = ">=3.9,<4.0"
 langchain-core = ">=0.1.33,<0.4"
 weaviate-client = "^4.0.0"
 numpy = "^1.26.2"
-simsimd = ">=3.6.1,<5.0.0"
+simsimd = ">=6.2.1,<7.0.0"
 
 [tool.poetry.group.test]
 optional = true
@@ -35,7 +35,6 @@ openai = "^1.6.0"
 tiktoken = ">=0.7,<1"
 pytest-cov = ">=4.1,<6.0"
 langchain-core = {git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core"}
-simsimd = ">=6.2.1,<7.0.0"
 
 [tool.poetry.group.codespell]
 optional = true
