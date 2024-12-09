@@ -32,7 +32,7 @@ def test_json_serializable(
     assert _json_serializable(value) == expected_result
 
 
-def test_from_texts_raises_value_error_when_client_is_none():
+def test_from_texts_raises_value_error_when_client_is_none() -> None:
     with pytest.raises(
         ValueError, match="client must be an instance of WeaviateClient"
     ):
