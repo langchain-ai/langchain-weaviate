@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from langchain_weaviate.vectorstores import (
+    WeaviateVectorStore,
     _default_score_normalizer,
     _json_serializable,
 )
@@ -29,3 +30,12 @@ def test_json_serializable(
     expected_result: Union[str, int, None],
 ) -> None:
     assert _json_serializable(value) == expected_result
+
+
+def test_from_texts_raises_value_error_when_client_is_none() -> None:
+    with pytest.raises(
+        ValueError, match="client must be an instance of WeaviateClient"
+    ):
+        WeaviateVectorStore.from_texts(
+            texts=["sample text"], embedding=None, client=None
+        )

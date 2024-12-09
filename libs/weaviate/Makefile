@@ -32,7 +32,7 @@ TEST_FILE ?= tests/unit_tests/
 
 integration_test integration_tests: TEST_FILE=tests/integration_tests/
 
-test tests: update-weaviate-image
+test tests:
 	poetry run pytest $(TEST_FILE) --cov=langchain_weaviate --cov-report term-missing --cov-fail-under=96.44
 
 integration_test integration_tests: update-weaviate-image

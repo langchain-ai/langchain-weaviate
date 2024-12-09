@@ -3,3 +3,5 @@
 __pycache__
 .coverage
 dist
+.mypy_cache
+.mypy_cache_test
