@@ -7,6 +7,10 @@ on:
 env:
   SOURCE_BRANCH_NAME: update-weaviate-image
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-version:
     runs-on: ubuntu-latest
