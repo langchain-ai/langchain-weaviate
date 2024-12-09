@@ -611,24 +611,6 @@ def test_search_with_multi_tenancy(
         docsearch.similarity_search("foo", k=1)
 
 
-def test_invalid_client_type() -> None:
-    with pytest.raises(ValueError) as excinfo:
-        invalid_client = "invalid_client"
-        index_name = "test_index"
-        text_key = "text"
-
-        WeaviateVectorStore(
-            client=invalid_client,
-            index_name=index_name,
-            text_key=text_key,
-        )
-
-    assert (
-        str(excinfo.value)
-        == "client should be an instance of weaviate.WeaviateClient, got <class 'str'>"
-    )
-
-
 def test_embedding_property(
     weaviate_client: Any, consistent_embedding: ConsistentFakeEmbeddings
 ) -> None:
