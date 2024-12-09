@@ -428,7 +428,7 @@ class WeaviateVectorStore(VectorStore):
         metadatas: Optional[List[dict]] = None,
         *,
         tenant: Optional[str] = None,
-        client: weaviate.WeaviateClient = None,
+        client: Optional[weaviate.WeaviateClient] = None,
         index_name: Optional[str] = None,
         text_key: str = "text",
         relevance_score_fn: Optional[
@@ -473,6 +473,9 @@ class WeaviateVectorStore(VectorStore):
         """
 
         attributes = list(metadatas[0].keys()) if metadatas else None
+
+        if client is None:
+            raise ValueError("client must be an instance of WeaviateClient")
 
         weaviate_vector_store = cls(
             client,
