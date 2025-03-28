@@ -468,9 +468,12 @@ class WeaviateVectorStore(VectorStore):
         """
 
         attributes = list(metadatas[0].keys()) if metadatas else None
-
+        client = client or kwargs["vectorstore_cls_kwargs"]["client"]
         if client is None:
             raise ValueError("client must be an instance of WeaviateClient")
+
+        index_name = index_name or kwargs["vectorstore_cls_kwargs"]["index_name"]
+        text_key = text_key or kwargs["vectorstore_cls_kwargs"]["text_key"]
 
         weaviate_vector_store = cls(
             client,
