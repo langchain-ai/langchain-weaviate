@@ -2,6 +2,7 @@
 
 import json
 import math
+from pathlib import Path
 from typing import Dict, List
 
 from langchain_core.embeddings import Embeddings
@@ -34,7 +35,8 @@ class ConsistentFakeEmbeddings(FakeEmbeddings):
     vectors for the same texts."""
 
     def __init__(self) -> None:
-        with open("./tests/unit_tests/fake_docs.json", "r") as f:
+        path = Path(__file__).parent / "fake_docs.json"
+        with open(path, "r") as f:
             self.known_texts: Dict[str, List[float]] = json.load(f)
 
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
