@@ -933,6 +933,31 @@ async def test_invalid_search_param(
 
 
 @pytest.mark.asyncio
+async def test_async_function_without_async_client(
+    weaviate_client: weaviate.WeaviateClient,
+    consistent_embedding: ConsistentFakeEmbeddings,
+) -> None:
+    index_name = f"TestIndex_{uuid.uuid4().hex}"
+    docsearch = WeaviateVectorStore(
+        client=weaviate_client,
+        client_async=None,
+        index_name=index_name,
+        text_key="text",
+        embedding=consistent_embedding,
+    )
+
+    # test all async functions without raising errors
+    # these should be run in the executor, this is identical to how the
+    # BaseVectorStore class runs the functions without the async method override
+    await docsearch.asimilarity_search("foo", k=1)
+    await docsearch.asimilarity_search_with_score("foo", k=1)
+    await docsearch.asimilarity_search_by_vector([1, 2, 3], k=1)
+    await docsearch.amax_marginal_relevance_search("foo", k=1)
+    await docsearch.amax_marginal_relevance_search_by_vector([1, 2, 3], k=1)
+    await docsearch.aadd_texts(["foo"])
+
+
+@pytest.mark.asyncio
 async def test_missing_coverage_edge_cases(
     weaviate_client: weaviate.WeaviateClient,
     weaviate_client_async: weaviate.WeaviateAsyncClient,
@@ -954,9 +979,10 @@ async def test_missing_coverage_edge_cases(
         text_key="text",
         embedding=embedding,
     )
-
-    with pytest.raises(ValueError, match="client_async must be an instance"):
+    # check if warning is logged
+    with caplog.at_level(logging.WARNING, logger="langchain_weaviate.vectorstores"):
         await docsearch_no_async.aadd_texts(["test"])
+        assert "client_async is None, using synchronous client instead" in caplog.text
 
     # Test line 355: Test max_marginal_relevance_search without embedding
     docsearch_no_embedding = WeaviateVectorStore(
@@ -969,10 +995,6 @@ async def test_missing_coverage_edge_cases(
 
     with pytest.raises(ValueError, match="max_marginal_relevance_search requires"):
         await docsearch_no_embedding.amax_marginal_relevance_search("test")
-
-    # Test lines 706-707: Test _perform_asearch without client_async or embedding
-    with pytest.raises(ValueError, match="client_async must be an instance"):
-        await docsearch_no_async._perform_asearch(query="test", k=1)
 
     docsearch = WeaviateVectorStore(
         client=weaviate_client,
@@ -1002,15 +1024,6 @@ async def test_missing_coverage_edge_cases(
 
     with pytest.raises(ValueError, match="Either query or vector must be provided"):
         await docsearch._perform_asearch(query=None, vector=None, k=1)
-
-    # Test line 735: Test _adoes_tenant_exist with no client_async
-    with pytest.raises(ValueError, match="client_async must be an instance"):
-        await docsearch_no_async._adoes_tenant_exist("test_tenant")
-
-    # Test lines 938, 946: Test _atenant_context with errors
-    with pytest.raises(ValueError, match="client_async must be an instance"):
-        async with docsearch_no_async._atenant_context("test_tenant"):
-            pass
 
     # Create a docsearch with client_async but without multi-tenancy
     docsearch_no_mt = WeaviateVectorStore(
@@ -1042,4 +1055,11 @@ async def test_missing_coverage_edge_cases(
     msg = "Must use tenant context when multi-tenancy is enabled"
     with pytest.raises(ValueError, match=msg):
         async with docsearch_with_mt._atenant_context(tenant=None):
+            pass
+
+    # Test that an error is raised without the async client
+    with pytest.raises(
+        ValueError, match="client_async must be an instance of WeaviateAsyncClient"
+    ):
+        async with docsearch_no_async._atenant_context(tenant="test_tenant"):
             pass
