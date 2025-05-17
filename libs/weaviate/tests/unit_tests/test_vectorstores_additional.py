@@ -1035,19 +1035,9 @@ async def test_atenant_context_missing_tenant(
         async with docsearch._atenant_context(tenant=None):
             pass
 
-
-@pytest.mark.asyncio
-async def test_warning_when_client_async_not_provided(
-    embedding: Any, mock_weaviate_client: MagicMock
-) -> None:
-    """Test that a warning is logged when client_async is not provided."""
-    # Create store with client_async not provided
+    # Test that _perform_asearch raises ValueError when client_async is None
+    docsearch._client_async = None
     with pytest.raises(
-        ValueError, match="client_async must be an instance of WeaviateAsyncClient"
+        ValueError, match="cannot perform asearch with synchronous client"
     ):
-        await WeaviateVectorStore.afrom_texts(
-            client=mock_weaviate_client,
-            texts=["test"],
-            embedding=embedding,
-            client_async=None,
-        )
+        await docsearch._perform_asearch(query="test", k=5)
