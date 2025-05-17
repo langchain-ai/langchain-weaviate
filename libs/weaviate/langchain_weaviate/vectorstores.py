@@ -23,6 +23,7 @@ import numpy as np
 import weaviate  # type: ignore
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
+from langchain_core.runnables.config import run_in_executor
 from langchain_core.vectorstores import VectorStore
 
 from langchain_weaviate.utils import maximal_marginal_relevance
@@ -570,7 +571,10 @@ class WeaviateVectorStore(VectorStore):
     ) -> List[str]:
         """Add texts to Weaviate asynchronously."""
         if self._client_async is None:
-            raise ValueError("client_async must be an instance of WeaviateAsyncClient")
+            logger.warning("client_async is None, using synchronous client instead")
+            return await run_in_executor(
+                None, self.add_texts, texts, metadatas, tenant, **kwargs
+            )
         from weaviate.util import get_valid_uuid  # type: ignore
 
         if tenant and not await self._adoes_tenant_exist(tenant):
@@ -678,7 +682,7 @@ class WeaviateVectorStore(VectorStore):
         ValueError: If _embedding is None or an invalid search method is provided.
         """
         if self._client_async is None:
-            raise ValueError("client_async must be an instance of WeaviateAsyncClient")
+            raise ValueError("cannot perform asearch with synchronous client")
         if self._embedding is None:
             raise ValueError("_embedding cannot be None for similarity_search")
 
@@ -739,8 +743,9 @@ class WeaviateVectorStore(VectorStore):
 
     async def _adoes_tenant_exist(self, tenant: str) -> bool:
         """Check if tenant exists in Weaviate asynchronously."""
-        if self._client_async is None:
-            raise ValueError("client_async must be an instance of WeaviateAsyncClient")
+        assert (
+            self._client_async is not None
+        ), "client_async must be an instance of WeaviateAsyncClient"
         assert (
             self._multi_tenancy_enabled
         ), "Cannot check for tenant existence when multi-tenancy is not enabled"
@@ -763,6 +768,10 @@ class WeaviateVectorStore(VectorStore):
         Returns:
             List of Documents most similar to the query.
         """
+        if self._client_async is None:
+            return await run_in_executor(
+                None, self.similarity_search, query, k, **kwargs
+            )
         result = await self._perform_asearch(query, k, **kwargs)
         return result
 
@@ -791,6 +800,16 @@ class WeaviateVectorStore(VectorStore):
         Returns:
             List of Documents selected by maximal marginal relevance.
         """
+        if self._client_async is None:
+            return await run_in_executor(
+                None,
+                self.max_marginal_relevance_search,
+                query,
+                k,
+                fetch_k,
+                lambda_mult,
+                **kwargs,
+            )
         if self._embedding is not None:
             embedding = await self._embedding.aembed_query(query)
         else:
@@ -827,6 +846,16 @@ class WeaviateVectorStore(VectorStore):
         Returns:
             List of Documents selected by maximal marginal relevance.
         """
+        if self._client_async is None:
+            return await run_in_executor(
+                None,
+                self.max_marginal_relevance_search_by_vector,
+                embedding,
+                k,
+                fetch_k,
+                lambda_mult,
+                **kwargs,
+            )
         results = await self._perform_asearch(
             query=None,
             k=fetch_k,
@@ -857,8 +886,35 @@ class WeaviateVectorStore(VectorStore):
         text and cosine distance in float for each.
         Lower score represents more similarity.
         """
+        if self._client_async is None:
+            return await run_in_executor(
+                None, self.similarity_search_with_score, query, k, **kwargs
+            )
         results = await self._perform_asearch(query, k, return_score=True, **kwargs)
         return results
+
+    async def asimilarity_search_by_vector(
+        self, embedding: List[float], k: int = 4, **kwargs: Any
+    ) -> List[Document]:
+        """Return docs most similar to embedding vector asynchronously.
+
+        Args:
+            embedding: Embedding vector to look up documents similar to.
+            k: Number of Documents to return. Defaults to 4.
+            **kwargs: Additional keyword arguments will be passed to the `hybrid()`
+                function of the weaviate client.
+
+        Returns:
+            List of Documents most similar to the embedding.
+        """
+        if self._client_async is None:
+            return await run_in_executor(
+                None, self.similarity_search_by_vector, embedding, k, **kwargs
+            )
+        result = await self._perform_asearch(
+            query=None, k=k, vector=embedding, **kwargs
+        )
+        return result
 
     @classmethod
     async def afrom_texts(
@@ -917,8 +973,6 @@ class WeaviateVectorStore(VectorStore):
 
         if client is None:
             raise ValueError("client must be an instance of WeaviateClient")
-        if client_async is None:
-            raise ValueError("client_async must be an instance of WeaviateAsyncClient")
 
         weaviate_vector_store = cls(
             client,
@@ -962,22 +1016,3 @@ class WeaviateVectorStore(VectorStore):
             yield collection
         finally:
             pass
-
-    async def asimilarity_search_by_vector(
-        self, embedding: List[float], k: int = 4, **kwargs: Any
-    ) -> List[Document]:
-        """Return docs most similar to embedding vector asynchronously.
-
-        Args:
-            embedding: Embedding vector to look up documents similar to.
-            k: Number of Documents to return. Defaults to 4.
-            **kwargs: Additional keyword arguments will be passed to the `hybrid()`
-                function of the weaviate client.
-
-        Returns:
-            List of Documents most similar to the embedding.
-        """
-        result = await self._perform_asearch(
-            query=None, k=k, vector=embedding, **kwargs
-        )
-        return result
