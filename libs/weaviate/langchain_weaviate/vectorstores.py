@@ -538,3 +538,6 @@ class WeaviateVectorStore(VectorStore):
             yield self._collection.with_tenant(tenant)
         finally:
             pass
+
+    def __del__(self) -> None:
+        self._client.close()
