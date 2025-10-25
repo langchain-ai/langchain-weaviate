@@ -487,34 +487,41 @@ class WeaviateVectorStore(VectorStore):
         return weaviate_vector_store
 
     def delete(
-        self,
-        ids: Optional[List[str]] = None,
-        tenant: Optional[str] = None,
-        **kwargs: Any,
+    self,
+    ids: Optional[List[str]] = None,
+    tenant: Optional[str] = None,
+    **kwargs: Any,
     ) -> None:
-        """Delete by vector IDs.
+        """
+        Delete objects from the vector store by ID or metadata filters.
 
         Args:
-            ids: List of ids to delete.
-            tenant: The tenant name. Defaults to None.
+            ids: List of Weaviate object UUIDs to delete.
+            tenant: Optional tenant name (for multi-tenancy).
+            kwargs: Arbitrary metadata filters (e.g., source="file.txt", category="legal").
         """
-
-        if ids is None:
-            raise ValueError("No ids provided to delete.")
-
-        id_filter = weaviate.classes.query.Filter.by_id().contains_any(ids)
+        if not ids and not kwargs:
+            raise ValueError("You must provide either 'ids' or metadata filter(s) to delete.")
 
         with self._tenant_context(tenant) as collection:
-            collection.data.delete_many(where=id_filter)
+            # Case 1: Delete by ID
+            if ids:
+                id_filter = weaviate.classes.query.Filter.by_id().contains_any(ids)
+                collection.data.delete_many(where=id_filter)
 
-    def _does_tenant_exist(self, tenant: str) -> bool:
-        """Check if tenant exists in Weaviate."""
-        assert (
-            self._multi_tenancy_enabled
-        ), "Cannot check for tenant existence when multi-tenancy is not enabled"
-        tenants = self._collection.tenants.get()
+            # Case 2: Delete by metadata filters
+            elif kwargs:
+                # Build AND-combined filter chain
+                filters = [
+                    weaviate.classes.query.Filter.by_property(key).equal(value)
+                    for key, value in kwargs.items()
+                ]
 
-        return tenant in tenants
+                combined_filter = filters[0]
+                for f in filters[1:]:
+                    combined_filter = combined_filter.and_filter(f)
+
+                collection.data.delete_many(where=combined_filter)
 
     @contextmanager
     def _tenant_context(
