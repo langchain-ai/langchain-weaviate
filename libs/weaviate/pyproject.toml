@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "langchain-weaviate"
-version = "0.0.5"
+version = "0.0.6"
 description = "An integration package connecting Weaviate and LangChain"
 authors = []
 readme = "README.md"
@@ -11,8 +11,8 @@ license = "MIT"
 "Source Code" = "https://github.com/langchain-ai/langchain-weaviate/tree/main/libs/weaviate"
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
-langchain-core = ">=0.1.33,<0.4"
+python = ">=3.10,<4.0"
+langchain-core = ">=0.1.33,<2.0"
 weaviate-client = "^4.0.0"
 numpy = ">=1.26.2,<3.0"
 simsimd = ">=6.2.1,<7.0.0"
