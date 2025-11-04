@@ -507,9 +507,9 @@ class WeaviateVectorStore(VectorStore):
 
     def _does_tenant_exist(self, tenant: str) -> bool:
         """Check if tenant exists in Weaviate."""
-        assert self._multi_tenancy_enabled, (
-            "Cannot check for tenant existence when multi-tenancy is not enabled"
-        )
+        assert (
+            self._multi_tenancy_enabled
+        ), "Cannot check for tenant existence when multi-tenancy is not enabled"
         tenants = self._collection.tenants.get()
 
         return tenant in tenants
