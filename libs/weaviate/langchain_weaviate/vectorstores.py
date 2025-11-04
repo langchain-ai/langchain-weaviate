@@ -70,19 +70,18 @@ def _json_serializable(value: Any) -> Any:
 
 
 class WeaviateVectorStore(VectorStore):
-    """`Weaviate` vector store.
+    """Weaviate vector store.
 
-    To use, you should have the ``weaviate-client`` python package installed.
+    To use, you should have the `weaviate-client` python package installed.
 
     Example:
-        .. code-block:: python
+        ```python
+        import weaviate
+        from langchain_community.vectorstores import Weaviate
 
-            import weaviate
-            from langchain_community.vectorstores import Weaviate
-
-            client = weaviate.Client(url=os.environ["WEAVIATE_URL"], ...)
-            weaviate = Weaviate(client, index_name, text_key)
-
+        client = weaviate.Client(url=os.environ["WEAVIATE_URL"], ...)
+        weaviate = Weaviate(client, index_name, text_key)
+        ```
     """
 
     def __init__(
@@ -226,21 +225,21 @@ class WeaviateVectorStore(VectorStore):
         Perform a similarity search.
 
         Parameters:
-        query (str): The query string to search for.
-        k (int): The number of results to return.
-        return_score (bool, optional): Whether to return the score along with the
-          document. Defaults to False.
-        tenant (Optional[str], optional): The tenant name. Defaults to None.
-        **kwargs: Additional parameters to pass to the search method. These parameters
-          will be directly passed to the underlying Weaviate client's search method.
+            query: The query string to search for.
+            k: The number of results to return.
+            return_score: Whether to return the score along with the document.
+            tenant: The tenant name.
+            **kwargs: Additional parameters to pass to the search method. These
+                parameters will be directly passed to the underlying Weaviate client's
+                search method.
 
         Returns:
-        List[Union[Document, Tuple[Document, float]]]: A list of documents that match
-          the query. If return_score is True, each document is returned as a tuple
-          with the document and its score.
+            A list of documents that match the query. If `return_score` is `True`, each
+                document is returned as a tuple with the document and its score.
 
         Raises:
-        ValueError: If _embedding is None or an invalid search method is provided.
+            ValueError: If `_embedding` is `None` or an invalid search method is
+                provided.
         """
         if self._embedding is None:
             raise ValueError("_embedding cannot be None for similarity_search")
@@ -307,12 +306,12 @@ class WeaviateVectorStore(VectorStore):
 
         Args:
             query: Text to look up documents similar to.
-            k: Number of Documents to return. Defaults to 4.
+            k: Number of `Document` objects to return. Defaults to `4`.
             **kwargs: Additional keyword arguments will be passed to the `hybrid()`
                 function of the weaviate client.
 
         Returns:
-            List of Documents most similar to the query.
+            List of `Document` objects most similar to the query.
         """
 
         result = self._perform_search(query, k, **kwargs)
@@ -333,15 +332,14 @@ class WeaviateVectorStore(VectorStore):
 
         Args:
             query: Text to look up documents similar to.
-            k: Number of Documents to return. Defaults to 4.
-            fetch_k: Number of Documents to fetch to pass to MMR algorithm.
-            lambda_mult: Number between 0 and 1 that determines the degree
-                        of diversity among the results with 0 corresponding
-                        to maximum diversity and 1 to minimum diversity.
-                        Defaults to 0.5.
+            k: Number of `Document` objects to return.
+            fetch_k: Number of `Document` objects to fetch to pass to MMR algorithm.
+            lambda_mult: Number between `0` and `1` that determines the degree of
+                diversity among the results with `0` corresponding to maximum diversity
+                and `1` to minimum diversity.
 
         Returns:
-            List of Documents selected by maximal marginal relevance.
+            List of `Document` objects selected by maximal marginal relevance.
         """
         if self._embedding is not None:
             embedding = self._embedding.embed_query(query)
@@ -369,15 +367,14 @@ class WeaviateVectorStore(VectorStore):
 
         Args:
             embedding: Embedding to look up documents similar to.
-            k: Number of Documents to return. Defaults to 4.
-            fetch_k: Number of Documents to fetch to pass to MMR algorithm.
-            lambda_mult: Number between 0 and 1 that determines the degree
-                        of diversity among the results with 0 corresponding
-                        to maximum diversity and 1 to minimum diversity.
-                        Defaults to 0.5.
+            k: Number of `Document` objects to return.
+            fetch_k: Number of `Document` objects to fetch to pass to MMR algorithm.
+            lambda_mult: Number between `0` and `1` that determines the degree
+                of diversity among the results with `0` corresponding to maximum
+                diversity and `1` to minimum diversity.
 
         Returns:
-            List of Documents selected by maximal marginal relevance.
+            List of `Document` objects selected by maximal marginal relevance.
         """
 
         results = self._perform_search(
@@ -405,9 +402,9 @@ class WeaviateVectorStore(VectorStore):
     def similarity_search_with_score(
         self, query: str, k: int = 4, **kwargs: Any
     ) -> List[Tuple[Document, float]]:
-        """
-        Return list of documents most similar to the query
-        text and cosine distance in float for each.
+        """Return list of documents most similar to the query text and cosine distance
+        in float for each.
+
         Lower score represents more similarity.
         """
 
@@ -434,9 +431,10 @@ class WeaviateVectorStore(VectorStore):
         """Construct Weaviate wrapper from raw documents.
 
         This is a user-friendly interface that:
-            1. Embeds documents.
-            2. Creates a new index for the embeddings in the Weaviate instance.
-            3. Adds the documents to the newly created Weaviate index.
+
+        1. Embeds documents.
+        2. Creates a new index for the embeddings in the Weaviate instance.
+        3. Adds the documents to the newly created Weaviate index.
 
         This is intended to be a quick way to get started.
 
@@ -445,26 +443,26 @@ class WeaviateVectorStore(VectorStore):
             embedding: Text embedding model to use.
             client: weaviate.Client to use.
             metadatas: Metadata associated with each text.
-            tenant: The tenant name. Defaults to None.
+            tenant: The tenant name.
             index_name: Index name.
             text_key: Key to use for uploading/retrieving text to/from vectorstore.
             relevance_score_fn: Function for converting whatever distance function the
                 vector store uses to a relevance score, which is a normalized similarity
-                score (0 means dissimilar, 1 means similar).
-            **kwargs: Additional named parameters to pass to ``Weaviate.__init__()``.
+                score (`0` means dissimilar, `1` means similar).
+            **kwargs: Additional named parameters to pass to `Weaviate.__init__()`.
 
         Example:
-            .. code-block:: python
+            ```python
+            from langchain_community.embeddings import OpenAIEmbeddings
+            from langchain_community.vectorstores import Weaviate
 
-                from langchain_community.embeddings import OpenAIEmbeddings
-                from langchain_community.vectorstores import Weaviate
-
-                embeddings = OpenAIEmbeddings()
-                weaviate = Weaviate.from_texts(
-                    texts,
-                    embeddings,
-                    client=client
-                )
+            embeddings = OpenAIEmbeddings()
+            weaviate = Weaviate.from_texts(
+                texts,
+                embeddings,
+                client=client
+            )
+            ```
         """
 
         attributes = list(metadatas[0].keys()) if metadatas else None
@@ -496,7 +494,7 @@ class WeaviateVectorStore(VectorStore):
 
         Args:
             ids: List of ids to delete.
-            tenant: The tenant name. Defaults to None.
+            tenant: The tenant name.
         """
 
         if ids is None:
@@ -523,7 +521,7 @@ class WeaviateVectorStore(VectorStore):
         """Context manager for handling tenants.
 
         Args:
-            tenant: The tenant name. Defaults to None.
+            tenant: The tenant name.
         """
 
         if tenant is not None and not self._multi_tenancy_enabled:
