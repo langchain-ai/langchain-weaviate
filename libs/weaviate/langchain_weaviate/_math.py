@@ -22,7 +22,8 @@ except Exception:
     # Could be ImportError or OSError (binary incompatibility)
     _simsimd_available = False
     try:
-        from scipy.spatial.distance import cdist as _scipy_cdist  # type: ignore
+        from scipy.spatial.distance import \
+            cdist as _scipy_cdist  # type: ignore
 
         _cdist_impl = _scipy_cdist
     except Exception:
@@ -60,13 +61,14 @@ if not _simsimd_available:
         "(note: simsimd may require newer glibc on some systems)."
     )
 
-#  Exposed distance function 
+
+#  Exposed distance function
 def cdist(X: np.ndarray, Y: np.ndarray, metric: str = "cosine") -> np.ndarray:
     """
     Compatibility wrapper. Returns pairwise distances between rows of X and Y.
     Uses simsimd.cdist if available, else SciPy, else NumPy fallback.
     """
-    return np.asarray(_cdist_impl(X, Y, metric=metric))    
+    return np.asarray(_cdist_impl(X, Y, metric=metric))
 
 
 def cosine_similarity(X: Matrix, Y: Matrix) -> np.ndarray:

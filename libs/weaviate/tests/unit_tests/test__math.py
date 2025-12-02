@@ -1,5 +1,4 @@
 import numpy as np
-
 from langchain_weaviate._math import cosine_similarity_top_k
 
 

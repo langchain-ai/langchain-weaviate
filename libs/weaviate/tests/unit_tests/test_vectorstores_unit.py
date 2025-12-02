@@ -3,12 +3,9 @@ from typing import Union
 
 import numpy as np
 import pytest
-
-from langchain_weaviate.vectorstores import (
-    WeaviateVectorStore,
-    _default_score_normalizer,
-    _json_serializable,
-)
+from langchain_weaviate.vectorstores import (WeaviateVectorStore,
+                                             _default_score_normalizer,
+                                             _json_serializable)
 
 
 @pytest.mark.parametrize("val, expected_result", [(1e6, 1.0), (-1e6, 0.0)])

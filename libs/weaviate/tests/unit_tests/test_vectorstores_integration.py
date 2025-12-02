@@ -9,7 +9,6 @@ import pytest
 import requests
 import weaviate  # type: ignore
 from langchain_core.documents import Document
-
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 
 from .fake_embeddings import ConsistentFakeEmbeddings, FakeEmbeddings

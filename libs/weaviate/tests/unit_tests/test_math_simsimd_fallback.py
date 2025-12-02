@@ -1,6 +1,7 @@
 # tests/unit_tests/test_math_simsimd_fallback.py
 import importlib
 import sys
+
 import numpy as np
 import pytest
 
