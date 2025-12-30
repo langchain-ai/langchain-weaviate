@@ -24,7 +24,8 @@ def _reload_math_with_numpy_fallback(monkeypatch):
     orig_import = __import__
 
     def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
-        # Force ImportError for simsimd and any scipy import so we hit the numpy fallback
+        # Force ImportError for simsimd and any scipy import
+        # so we hit the numpy fallback
         if name == "simsimd" or name.startswith("scipy"):
             raise ImportError(f"{name} not available in this test environment")
         return orig_import(name, globals, locals, fromlist, level)

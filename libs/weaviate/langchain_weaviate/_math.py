@@ -22,8 +22,7 @@ except Exception:
     # Could be ImportError or OSError (binary incompatibility)
     _simsimd_available = False
     try:
-        from scipy.spatial.distance import \
-            cdist as _scipy_cdist  # type: ignore
+        from scipy.spatial.distance import cdist as _scipy_cdist  # type: ignore
 
         _cdist_impl = _scipy_cdist
     except Exception:
@@ -56,9 +55,10 @@ except Exception:
 
 if not _simsimd_available:
     logger.warning(
-        "simsimd not available — falling back to SciPy/NumPy implementation for vector math. "
-        "To enable the accelerated path, install the optional dependency 'simsimd' "
-        "(note: simsimd may require newer glibc on some systems)."
+        "simsimd not available — falling back to SciPy/NumPy "
+        "implementation for vector math. "
+        "To enable the accelerated path, install the optional dependency "
+        "'simsimd' (note: simsimd may require newer glibc on some systems)."
     )
 
 

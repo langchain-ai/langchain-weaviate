@@ -4,6 +4,7 @@ from enum import Enum
 from typing import List
 
 import numpy as np
+
 from langchain_weaviate._math import cosine_similarity
 
 
