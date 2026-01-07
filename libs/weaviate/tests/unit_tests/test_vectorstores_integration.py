@@ -9,6 +9,7 @@ import pytest
 import requests
 import weaviate  # type: ignore
 from langchain_core.documents import Document
+
 from langchain_weaviate.vectorstores import WeaviateVectorStore
 
 from .fake_embeddings import ConsistentFakeEmbeddings, FakeEmbeddings
@@ -416,7 +417,7 @@ def test_delete(
 
     total_docs_before_delete = (
         weaviate_client.collections.get(index_name)
-        .with_tenant(tenant)
+        .with_tenant(tenant)  # type: ignore[arg-type]
         .aggregate.over_all(total_count=True)
         .total_count
     )
@@ -424,7 +425,7 @@ def test_delete(
 
     total_docs_after_delete = (
         weaviate_client.collections.get(index_name)
-        .with_tenant(tenant)
+        .with_tenant(tenant)  # type: ignore[arg-type]
         .aggregate.over_all(total_count=True)
         .total_count
     )

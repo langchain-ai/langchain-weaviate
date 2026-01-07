@@ -4,8 +4,19 @@ import datetime
 import logging
 from collections.abc import Generator
 from contextlib import contextmanager
-from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List,
-                    Literal, Optional, Tuple, Union, overload)
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Union,
+    overload,
+)
 from uuid import uuid4
 
 import numpy as np
@@ -13,6 +24,7 @@ import weaviate  # type: ignore
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.vectorstores import VectorStore
+
 from langchain_weaviate.utils import maximal_marginal_relevance
 
 if TYPE_CHECKING:
@@ -521,6 +533,6 @@ class WeaviateVectorStore(VectorStore):
             raise ValueError("Must use tenant context when multi-tenancy is enabled")
 
         try:
-            yield self._collection.with_tenant(tenant)
+            yield self._collection.with_tenant(tenant)  # type: ignore[arg-type]
         finally:
             pass

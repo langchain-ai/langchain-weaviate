@@ -17,18 +17,19 @@ try:
     import simsimd  # type: ignore
 
     _simsimd_available = True
-    _cdist_impl = simsimd.cdist  # type: ignore
+    _cdist_impl = simsimd.cdist  # type: ignore[assignment]
 except Exception:
     # Could be ImportError or OSError (binary incompatibility)
     _simsimd_available = False
     try:
-        from scipy.spatial.distance import \
-            cdist as _scipy_cdist  # type: ignore
+        from scipy.spatial.distance import cdist as _scipy_cdist  # type: ignore
 
         _cdist_impl = _scipy_cdist
     except Exception:
         # Minimal NumPy fallback supporting cosine distance only
-        def _numpy_cdist(X: np.ndarray, Y: np.ndarray, metric: str = "cosine"):
+        def _numpy_cdist(
+            X: np.ndarray, Y: np.ndarray, metric: str = "cosine"
+        ) -> np.ndarray:  # type: ignore[misc]
             if metric != "cosine":
                 raise ValueError("NumPy fallback only supports metric='cosine'")
 
@@ -39,7 +40,7 @@ except Exception:
                 raise ValueError("X and Y must be 2-D arrays")
 
             # normalize rows (avoid division by zero)
-            def _normalize(A: np.ndarray):
+            def _normalize(A: np.ndarray) -> np.ndarray:
                 norms = np.linalg.norm(A, axis=1, keepdims=True)
                 norms[norms == 0] = 1.0
                 return A / norms
@@ -52,12 +53,14 @@ except Exception:
             # cosine distance = 1 - similarity
             return 1.0 - sim
 
-        _cdist_impl = _numpy_cdist
+        _cdist_impl = _numpy_cdist  # type: ignore[assignment]
 
 if not _simsimd_available:
     logger.warning(
-        "simsimd not available — falling back to SciPy/NumPy implementation for vector math. "
-        "To enable the accelerated path, install the optional dependency 'simsimd' "
+        "simsimd not available — falling back to SciPy/NumPy "
+        "implementation for vector math. "
+        "To enable the accelerated path, install the optional "
+        "dependency 'simsimd' "
         "(note: simsimd may require newer glibc on some systems)."
     )
 
@@ -68,7 +71,7 @@ def cdist(X: np.ndarray, Y: np.ndarray, metric: str = "cosine") -> np.ndarray:
     Compatibility wrapper. Returns pairwise distances between rows of X and Y.
     Uses simsimd.cdist if available, else SciPy, else NumPy fallback.
     """
-    return np.asarray(_cdist_impl(X, Y, metric=metric))
+    return np.asarray(_cdist_impl(X, Y, metric=metric))  # type: ignore[arg-type]
 
 
 def cosine_similarity(X: Matrix, Y: Matrix) -> np.ndarray:
