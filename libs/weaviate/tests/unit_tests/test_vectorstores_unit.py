@@ -50,9 +50,8 @@ def test_select_relevance_score_fn_with_custom_function() -> None:
 
     mock_client = MagicMock()
     mock_client.collections.exists.return_value = True
-    mock_client.collections.get.return_value.config.get.return_value.multi_tenancy_config.enabled = (
-        False
-    )
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
 
     vectorstore = WeaviateVectorStore(
         client=mock_client,
@@ -72,9 +71,8 @@ def test_max_marginal_relevance_search_without_embeddings() -> None:
 
     mock_client = MagicMock()
     mock_client.collections.exists.return_value = True
-    mock_client.collections.get.return_value.config.get.return_value.multi_tenancy_config.enabled = (
-        False
-    )
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
 
     vectorstore = WeaviateVectorStore(
         client=mock_client, index_name="test", text_key="text", embedding=None
