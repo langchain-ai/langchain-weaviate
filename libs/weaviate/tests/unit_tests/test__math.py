@@ -87,9 +87,9 @@ def test_cosine_similarity_single_value() -> None:
     """Test cosine similarity with single vectors to cover float conversion path."""
     X = np.array([[1.0, 0.0]])
     Y = np.array([[1.0, 0.0]])
-    
+
     result = cosine_similarity(X, Y)
-    
+
     # Should return an array
     assert isinstance(result, np.ndarray)
     assert result.shape[0] >= 1
