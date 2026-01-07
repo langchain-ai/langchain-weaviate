@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, cast
 
 import numpy as np
 
@@ -125,10 +125,10 @@ def cosine_similarity_top_k(
     score_array = cosine_similarity(X, Y)
     score_threshold = score_threshold or -1.0
     score_array[score_array < score_threshold] = 0
-    top_k = min(top_k or len(score_array), np.count_nonzero(score_array))
-    if top_k == 0:
+    k_val = cast(int, min(top_k or len(score_array), np.count_nonzero(score_array)))
+    if k_val == 0:
         return [], []
-    top_k_idxs = np.argpartition(score_array, -top_k, axis=None)[-top_k:]
+    top_k_idxs = np.argpartition(score_array, -k_val, axis=None)[-k_val:]
     top_k_idxs = top_k_idxs[np.argsort(score_array.ravel()[top_k_idxs])][::-1]
     ret_idxs = np.unravel_index(top_k_idxs, score_array.shape)
     scores = score_array.ravel()[top_k_idxs].tolist()

@@ -624,7 +624,7 @@ def test_embedding_property(
         embedding=consistent_embedding,
     )
 
-    assert type(docsearch.embeddings) == type(consistent_embedding)
+    assert isinstance(docsearch.embeddings, type(consistent_embedding))
 
 
 def test_documents_with_many_properties(
