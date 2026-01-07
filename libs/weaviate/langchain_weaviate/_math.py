@@ -129,9 +129,10 @@ def cosine_similarity_top_k(
     if k_val == 0:
         return [], []
     top_k_idxs = np.argpartition(score_array, -k_val, axis=None)[-k_val:]
-    top_k_idxs = top_k_idxs[np.argsort(score_array.ravel()[top_k_idxs], kind="stable")][
-        ::-1
-    ]
+    # Sort by score descending, then by index ascending for deterministic order
+    scores_for_sort = score_array.ravel()[top_k_idxs]
+    sort_order = np.lexsort((top_k_idxs, -scores_for_sort))
+    top_k_idxs = top_k_idxs[sort_order]
     ret_idxs = np.unravel_index(top_k_idxs, score_array.shape)
     scores = score_array.ravel()[top_k_idxs].tolist()
     return [(int(i), int(j)) for i, j in zip(*ret_idxs)], scores
