@@ -1,6 +1,9 @@
 # tests/unit_tests/test_math_simsimd_fallback.py
+from __future__ import annotations
+
 import importlib
 import sys
+from typing import Any
 
 import numpy as np
 import pytest
@@ -8,7 +11,7 @@ import pytest
 MODULE_PATH = "langchain_weaviate._math"
 
 
-def _reload_math_with_numpy_fallback(monkeypatch):
+def _reload_math_with_numpy_fallback(monkeypatch: Any) -> Any:
     """
     Reload the math module simulating that simsimd and scipy are NOT available,
     so the pure-NumPy fallback is used.
@@ -23,9 +26,15 @@ def _reload_math_with_numpy_fallback(monkeypatch):
 
     orig_import = __import__
 
-    def fake_import(name, globals=None, locals=None, fromlist=(), level=0):
-        # Force ImportError for simsimd and any scipy import
-        # so we hit the numpy fallback
+    def fake_import(
+        name: str,
+        globals: Any = None,
+        locals: Any = None,
+        fromlist: tuple[Any, ...] = (),
+        level: int = 0,
+    ) -> Any:
+        # Force ImportError for simsimd and any scipy import so we hit the
+        # numpy fallback
         if name == "simsimd" or name.startswith("scipy"):
             raise ImportError(f"{name} not available in this test environment")
         return orig_import(name, globals, locals, fromlist, level)
@@ -38,7 +47,7 @@ def _reload_math_with_numpy_fallback(monkeypatch):
     return importlib.import_module(MODULE_PATH)
 
 
-def test_cdist_numpy_fallback(monkeypatch):
+def test_cdist_numpy_fallback(monkeypatch: Any) -> None:
     math_mod = _reload_math_with_numpy_fallback(monkeypatch)
 
     X = np.array([[1.0, 0.0], [0.0, 1.0]])
@@ -50,7 +59,7 @@ def test_cdist_numpy_fallback(monkeypatch):
     assert np.allclose(Z, expected)
 
 
-def test_cdist_unsupported_metric_raises(monkeypatch):
+def test_cdist_unsupported_metric_raises(monkeypatch: Any) -> None:
     math_mod = _reload_math_with_numpy_fallback(monkeypatch)
 
     X = np.array([[1.0, 0.0]])
