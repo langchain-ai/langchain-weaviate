@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import NDArray
 
 from langchain_weaviate.utils import maximal_marginal_relevance
 
@@ -34,7 +35,7 @@ def test_maximal_marginal_relevance_2d_query() -> None:
 def test_maximal_marginal_relevance_empty_list() -> None:
     """Test MMR with empty embedding list."""
     query_embedding = np.array([1.0, 0.0])
-    embedding_list = []
+    embedding_list: list[NDArray] = []
 
     result = maximal_marginal_relevance(query_embedding, embedding_list, k=2)
     assert result == []
