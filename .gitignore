@@ -5,3 +5,5 @@ __pycache__
 dist
 .mypy_cache
 .mypy_cache_test
+.venv/
+libs/weaviate/.venv/

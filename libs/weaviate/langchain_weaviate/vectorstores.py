@@ -533,6 +533,6 @@ class WeaviateVectorStore(VectorStore):
             raise ValueError("Must use tenant context when multi-tenancy is enabled")
 
         try:
-            yield self._collection.with_tenant(tenant)
+            yield self._collection.with_tenant(tenant)  # type: ignore[arg-type]
         finally:
             pass

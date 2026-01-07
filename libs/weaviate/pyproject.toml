@@ -15,7 +15,11 @@ python = ">=3.10,<4.0"
 langchain-core = ">=0.1.33,<2.0"
 weaviate-client = "^4.0.0"
 numpy = ">=1.26.2,<3.0"
-simsimd = ">=6.2.1,<7.0.0"
+# simsimd marked optional for fallback support
+simsimd = { version = ">=6.2.1,<7.0.0", optional = true }
+
+[tool.poetry.extras]
+simsimd = ["simsimd"]
 
 [tool.poetry.group.test]
 optional = true
