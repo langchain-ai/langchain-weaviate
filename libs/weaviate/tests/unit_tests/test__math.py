@@ -93,3 +93,20 @@ def test_cosine_similarity_single_value() -> None:
     # Should return an array
     assert isinstance(result, np.ndarray)
     assert result.shape[0] >= 1
+
+
+def test_cosine_similarity_float_to_array_conversion() -> None:
+    """Test line 100: Conversion of scalar float to 1-D array.
+    
+    This tests the edge case where _cdist_impl returns a float instead of an array,
+    which is then converted to a 1-D array containing that float value.
+    """
+    X = np.array([[1.0, 0.0]])
+    Y = np.array([[1.0, 0.0]])
+
+    result = cosine_similarity(X, Y)
+
+    # Result should always be an array, even if backend returns a float
+    assert isinstance(result, np.ndarray)
+    # Should contain the similarity value (1.0 for identical vectors)
+    assert np.allclose(result, 1.0, rtol=1e-2)

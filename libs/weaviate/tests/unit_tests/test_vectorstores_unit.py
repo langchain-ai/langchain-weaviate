@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import Union
 
 import numpy as np
@@ -9,6 +10,24 @@ from langchain_weaviate.vectorstores import (
     _default_score_normalizer,
     _json_serializable,
 )
+
+
+def test_logger_debug_level() -> None:
+    """Test line 31: Verify logger is set to DEBUG level on module import."""
+    import importlib
+    import sys
+
+    # Force reload to ensure line 31 is executed during this test
+    if "langchain_weaviate.vectorstores" in sys.modules:
+        importlib.reload(sys.modules["langchain_weaviate.vectorstores"])
+    else:
+        from langchain_weaviate import vectorstores  # noqa: F401
+
+    # Get the logger from the module
+    logger = logging.getLogger("langchain_weaviate.vectorstores")
+
+    # Verify it's set to DEBUG
+    assert logger.level == logging.DEBUG
 
 
 @pytest.mark.parametrize("val, expected_result", [(1e6, 1.0), (-1e6, 0.0)])
