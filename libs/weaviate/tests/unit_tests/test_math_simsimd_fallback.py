@@ -122,7 +122,7 @@ def test_numpy_fallback_invalid_dimensions(monkeypatch: Any) -> None:
 
 def test_scipy_fallback_path(monkeypatch: Any) -> None:
     """Test line 27: scipy.spatial.distance.cdist is used when simsimd not available.
-    
+
     This tests that the scipy fallback (line 27: _cdist_impl = _scipy_cdist)
     works correctly when simsimd is not available but scipy is.
     """
@@ -148,7 +148,7 @@ def test_scipy_fallback_path(monkeypatch: Any) -> None:
 
 def test_cosine_similarity_float_return_path(monkeypatch: Any) -> None:
     """Test line 100: cosine_similarity handles float return from _cdist_impl.
-    
+
     This test mocks _cdist_impl to return a float instead of an array,
     ensuring the isinstance(Z, float) check and array conversion works.
     """
@@ -177,4 +177,3 @@ def test_cosine_similarity_float_return_path(monkeypatch: Any) -> None:
     # cosine distance 0 -> similarity 1
     assert result.shape == (1,)
     assert np.allclose(result, [1.0])
-

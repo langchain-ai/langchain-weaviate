@@ -97,7 +97,7 @@ def test_cosine_similarity_single_value() -> None:
 
 def test_cosine_similarity_float_to_array_conversion() -> None:
     """Test line 100: Conversion of scalar float to 1-D array.
-    
+
     This tests the edge case where _cdist_impl returns a float instead of an array,
     which is then converted to a 1-D array containing that float value.
     """
