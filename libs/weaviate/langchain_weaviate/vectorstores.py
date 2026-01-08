@@ -115,7 +115,7 @@ class WeaviateVectorStore(VectorStore):
                 self.schema["MultiTenancyConfig"] = {
                     "enabled": use_multi_tenancy,
                     "autoTenantCreation": use_multi_tenancy,
-                    "autoTenantActivation": use_multi_tenancy
+                    "autoTenantActivation": use_multi_tenancy,
                 }
             else:
                 # use_multi_tenancy is a dict, use it directly
