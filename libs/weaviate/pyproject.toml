@@ -38,6 +38,7 @@ pytest-xdist = "^3.5.0"
 openai = "^1.6.0"
 tiktoken = ">=0.7,<1"
 pytest-cov = ">=4.1,<6.0"
+scipy = "^1.11.0"
 langchain-core = {git = "https://github.com/langchain-ai/langchain.git", subdirectory = "libs/core"}
 
 [tool.poetry.group.codespell]
