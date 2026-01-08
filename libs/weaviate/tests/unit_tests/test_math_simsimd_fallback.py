@@ -128,7 +128,7 @@ def test_scipy_fallback_path(monkeypatch: Any) -> None:
     """
     # Check if scipy is available
     try:
-        import scipy.spatial.distance  # noqa: F401
+        import scipy.spatial.distance  # type: ignore[import-untyped]  # noqa: F401
     except ImportError:
         pytest.skip("scipy not available, cannot test scipy fallback path")
 
@@ -159,11 +159,11 @@ def test_cosine_similarity_float_return_path(monkeypatch: Any) -> None:
 
     def mock_cdist_returns_float(
         X: np.ndarray, Y: np.ndarray, metric: str = "cosine"
-    ) -> float:
+    ) -> Any:
         # Return a float instead of an array for 1x1 case
         if X.shape[0] == 1 and Y.shape[0] == 1:
             return 0.0  # cosine distance of 0 means identical vectors
-        return original_cdist(X, Y, metric=metric)
+        return original_cdist(X, Y, metric=metric)  # type: ignore[arg-type]
 
     monkeypatch.setattr(_math, "_cdist_impl", mock_cdist_returns_float)
 
