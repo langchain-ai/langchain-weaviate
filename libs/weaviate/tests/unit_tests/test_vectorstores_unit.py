@@ -80,3 +80,84 @@ def test_max_marginal_relevance_search_without_embeddings() -> None:
 
     with pytest.raises(ValueError, match="requires a suitable Embeddings object"):
         vectorstore.max_marginal_relevance_search("query", k=4)
+
+
+def test_vectorstore_with_custom_schema() -> None:
+    """Test that WeaviateVectorStore accepts and uses custom schema."""
+    from unittest.mock import MagicMock
+
+    custom_schema = {
+        "class": "CustomClass",
+        "properties": [
+            {"name": "custom_text", "dataType": ["text"]},
+            {"name": "custom_field", "dataType": ["string"]},
+        ],
+        "vectorizer": "none",
+    }
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="CustomClass",
+        text_key="custom_text",
+        schema=custom_schema,
+    )
+
+    # Verify that the custom schema was used
+    assert vectorstore.schema == custom_schema
+    mock_client.collections.create_from_dict.assert_called_once_with(custom_schema)
+
+
+def test_vectorstore_with_default_schema() -> None:
+    """Test that WeaviateVectorStore uses default schema when none provided."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+    )
+
+    # Verify that default schema was created
+    assert vectorstore.schema["class"] == "TestClass"
+    assert vectorstore.schema["properties"][0]["name"] == "text"
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is False
+    mock_client.collections.create_from_dict.assert_called_once()
+
+
+def test_vectorstore_with_custom_schema_and_multi_tenancy() -> None:
+    """Test that custom schema is used as-is, even with use_multi_tenancy=True."""
+    from unittest.mock import MagicMock
+
+    custom_schema = {
+        "class": "CustomClass",
+        "properties": [{"name": "text", "dataType": ["text"]}],
+        "MultiTenancyConfig": {"enabled": True},
+    }
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = True
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="CustomClass",
+        text_key="text",
+        schema=custom_schema,
+        use_multi_tenancy=True,
+    )
+
+    # When custom schema is provided, it should be used as-is
+    # use_multi_tenancy parameter should not modify it
+    assert vectorstore.schema == custom_schema
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True

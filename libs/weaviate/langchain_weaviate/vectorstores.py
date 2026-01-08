@@ -110,7 +110,11 @@ class WeaviateVectorStore(VectorStore):
 
         if not schema:
             self.schema = _default_schema(self._index_name)
-            self.schema["MultiTenancyConfig"] = {"enabled": use_multi_tenancy}
+            self.schema["MultiTenancyConfig"] = {
+                "enabled": use_multi_tenancy,
+                "autoTenantCreation": True,
+                "autoTenantActivation": True                
+            }
         else:
             self.schema = schema
 
