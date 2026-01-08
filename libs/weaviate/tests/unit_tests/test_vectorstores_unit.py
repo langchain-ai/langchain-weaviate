@@ -161,3 +161,72 @@ def test_vectorstore_with_custom_schema_and_multi_tenancy() -> None:
     # use_multi_tenancy parameter should not modify it
     assert vectorstore.schema == custom_schema
     assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True
+
+
+def test_vectorstore_with_multi_tenancy_dict() -> None:
+    """Test that use_multi_tenancy accepts a dict with custom config."""
+    from unittest.mock import MagicMock
+
+    multi_tenancy_config = {
+        "enabled": True,
+        "autoTenantCreation": False,
+        "autoTenantActivation": False,
+    }
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = True
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+        use_multi_tenancy=multi_tenancy_config,
+    )
+
+    # Should use the provided dict directly
+    assert vectorstore.schema["MultiTenancyConfig"] == multi_tenancy_config
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True
+    assert vectorstore.schema["MultiTenancyConfig"]["autoTenantCreation"] is False
+    assert vectorstore.schema["MultiTenancyConfig"]["autoTenantActivation"] is False
+
+
+def test_vectorstore_with_multi_tenancy_bool_true() -> None:
+    """Test that use_multi_tenancy=True creates default config."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = True
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+        use_multi_tenancy=True,
+    )
+
+    # Should create default config with enabled=True
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True
+
+
+def test_vectorstore_with_multi_tenancy_bool_false() -> None:
+    """Test that use_multi_tenancy=False creates disabled config."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+        use_multi_tenancy=False,
+    )
+
+    # Should create config with multi-tenancy disabled
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is False

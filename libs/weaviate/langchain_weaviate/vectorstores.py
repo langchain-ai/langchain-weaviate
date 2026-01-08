@@ -95,7 +95,7 @@ class WeaviateVectorStore(VectorStore):
         relevance_score_fn: Optional[
             Callable[[float], float]
         ] = _default_score_normalizer,
-        use_multi_tenancy: bool = False,
+        use_multi_tenancy: Union[bool, Dict] = False,
     ):
         """Initialize with Weaviate client."""
 
@@ -110,11 +110,14 @@ class WeaviateVectorStore(VectorStore):
 
         if not schema:
             self.schema = _default_schema(self._index_name)
-            self.schema["MultiTenancyConfig"] = {
-                "enabled": use_multi_tenancy,
-                "autoTenantCreation": True,
-                "autoTenantActivation": True                
-            }
+            # Handle multi-tenancy config
+            if isinstance(use_multi_tenancy, bool):
+                self.schema["MultiTenancyConfig"] = {
+                    "enabled": use_multi_tenancy
+                }
+            else:
+                # use_multi_tenancy is a dict, use it directly
+                self.schema["MultiTenancyConfig"] = use_multi_tenancy
         else:
             self.schema = schema
 
