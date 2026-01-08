@@ -43,12 +43,12 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def _default_schema(index_name: str) -> Dict:
+def _default_schema(index_name: str, text_key: str = "text") -> Dict:
     return {
         "class": index_name,
         "properties": [
             {
-                "name": "text",
+                "name": text_key,
                 "dataType": ["text"],
             }
         ],
@@ -109,7 +109,7 @@ class WeaviateVectorStore(VectorStore):
             self._query_attrs.extend(attributes)
 
         if not schema:
-            self.schema = _default_schema(self._index_name)
+            self.schema = _default_schema(self._index_name, self._text_key)
             # Handle multi-tenancy config
             if isinstance(use_multi_tenancy, bool):
                 self.schema["MultiTenancyConfig"] = {"enabled": use_multi_tenancy}
