@@ -1324,14 +1324,14 @@ subdirectory = "libs/text-splitters"
 
 [[package]]
 name = "langsmith"
-version = "0.6.1"
+version = "0.6.3"
 description = "Client library to connect to the LangSmith Observability and Evaluation Platform."
 optional = false
 python-versions = ">=3.10"
 groups = ["main", "dev", "test", "test-integration", "typing"]
 files = [
-    {file = "langsmith-0.6.1-py3-none-any.whl", hash = "sha256:cad1f0a5cb8baf01490d2d90b7515d2cecc31648237bf070d2e6c0e7d58a2079"},
-    {file = "langsmith-0.6.1.tar.gz", hash = "sha256:bf35f9ffa592d602d5b11d23890d51342f321ac7f5e0cb6a22ab48fbdb88853a"},
+    {file = "langsmith-0.6.3-py3-none-any.whl", hash = "sha256:44fdf8084165513e6bede9dda715e7b460b1b3f57ac69f2ca3f03afa911233ec"},
+    {file = "langsmith-0.6.3.tar.gz", hash = "sha256:33246769c0bb24e2c17e0c34bb21931084437613cd37faf83bd0978a297b826f"},
 ]
 
 [package.dependencies]
