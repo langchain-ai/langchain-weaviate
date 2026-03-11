@@ -199,13 +199,11 @@ class WeaviateVectorStore(VectorStore):
                 ids.append(_id)
 
         failed_objs = self._client.batch.failed_objects
-        for obj in failed_objs:
-            err_message = (
-                f"Failed to add object: {obj.original_uuid}\nReason: {obj.message}"
+        if failed_objs:
+            raise ValueError(
+                f"Weaviate batch indexing failed for {len(failed_objs)} object(s): "
+                + "; ".join(f"{obj.original_uuid}: {obj.message}" for obj in failed_objs)
             )
-
-            logger.error(err_message)
-
         return ids
 
     @overload
