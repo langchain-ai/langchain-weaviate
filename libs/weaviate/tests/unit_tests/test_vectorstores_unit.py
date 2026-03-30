@@ -249,3 +249,43 @@ def test_vectorstore_with_multi_tenancy_bool_false() -> None:
 
     # Should create config with multi-tenancy disabled
     assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is False
+
+
+def test_add_texts_raises_value_error_on_batch_failures() -> None:
+    """Test that add_texts surfaces batch indexing failures."""
+    from types import SimpleNamespace
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    mock_batch = MagicMock()
+    mock_client.batch.dynamic.return_value.__enter__.return_value = mock_batch
+    mock_client.batch.failed_objects = [
+        SimpleNamespace(
+            original_uuid="22222222-2222-2222-2222-222222222222",
+            message="boom",
+        )
+    ]
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+    )
+
+    with pytest.raises(
+        ValueError, match="Failed to index 1 out of 2 objects into Weaviate"
+    ) as exc_info:
+        vectorstore.add_texts(
+            ["foo", "bar"],
+            ids=[
+                "11111111-1111-1111-1111-111111111111",
+                "22222222-2222-2222-2222-222222222222",
+            ],
+        )
+    assert getattr(exc_info.value, "successful_ids") == [
+        "11111111-1111-1111-1111-111111111111"
+    ]
