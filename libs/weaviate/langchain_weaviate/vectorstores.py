@@ -103,9 +103,7 @@ def _register_integration(client: "weaviate.WeaviateClient") -> None:
 
         client.integrations.configure(_LangChainIntegration())
     except Exception:
-        logger.debug(
-            "Could not register langchain integration header", exc_info=True
-        )
+        logger.debug("Could not register langchain integration header", exc_info=True)
 
 
 class WeaviateVectorStore(VectorStore):
