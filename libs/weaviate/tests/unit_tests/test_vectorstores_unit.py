@@ -8,6 +8,7 @@ import pytest
 from langchain_weaviate.vectorstores import (
     WeaviateVectorStore,
     _default_score_normalizer,
+    _integration_version,
     _json_serializable,
 )
 
@@ -229,6 +230,55 @@ def test_vectorstore_with_multi_tenancy_bool_true() -> None:
 
     # Should create default config with enabled=True
     assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True
+
+
+def test_registers_integration_header() -> None:
+    """The X-Weaviate-Client-Integration header is registered on construction."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    WeaviateVectorStore(client=mock_client, index_name="test", text_key="text")
+
+    mock_client.integrations.configure.assert_called_once()
+    (config,) = mock_client.integrations.configure.call_args.args
+    header = config._to_header()
+    assert header == {
+        "X-Weaviate-Client-Integration": f"langchain/{_integration_version()}"
+    }
+
+
+def test_integration_registration_failure_does_not_break_init() -> None:
+    """Best-effort: a failure while registering the header must not break init."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+    mock_client.integrations.configure.side_effect = RuntimeError("boom")
+
+    # Should not raise despite the integrations API blowing up.
+    vectorstore = WeaviateVectorStore(
+        client=mock_client, index_name="test", text_key="text"
+    )
+    assert vectorstore._client is mock_client
+
+
+def test_integration_version_falls_back_to_unknown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_integration_version returns 'unknown' when metadata lookup fails."""
+    import importlib.metadata
+
+    def _raise(_: str) -> str:
+        raise importlib.metadata.PackageNotFoundError("langchain-weaviate")
+
+    monkeypatch.setattr(importlib.metadata, "version", _raise)
+    assert _integration_version() == "unknown"
 
 
 def test_vectorstore_with_multi_tenancy_bool_false() -> None:

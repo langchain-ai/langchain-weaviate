@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import importlib.metadata
 import logging
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -69,6 +70,44 @@ def _json_serializable(value: Any) -> Any:
     return value
 
 
+_INTEGRATION_NAME = "langchain"
+
+
+def _integration_version() -> str:
+    try:
+        return importlib.metadata.version("langchain-weaviate")
+    except Exception:
+        return "unknown"
+
+
+def _register_integration(client: "weaviate.WeaviateClient") -> None:
+    """Best-effort: tag the connection with the X-Weaviate-Client-Integration
+    header so Weaviate telemetry can track langchain usage. Never raises.
+
+    The header is applied to both HTTP and gRPC transports via the weaviate
+    client's public integrations API. The import and config class live inside
+    the try block so older ``weaviate-client`` releases that lack this API
+    simply skip registration instead of breaking construction.
+    """
+    try:
+        from pydantic import Field
+        from weaviate.connect.integrations import _IntegrationConfig  # type: ignore
+
+        value = f"{_INTEGRATION_NAME}/{_integration_version()}"
+
+        class _LangChainIntegration(_IntegrationConfig):
+            integration: str = Field(
+                default=value,
+                serialization_alias="X-Weaviate-Client-Integration",
+            )
+
+        client.integrations.configure(_LangChainIntegration())
+    except Exception:
+        logger.debug(
+            "Could not register langchain integration header", exc_info=True
+        )
+
+
 class WeaviateVectorStore(VectorStore):
     """Weaviate vector store.
 
@@ -100,6 +139,7 @@ class WeaviateVectorStore(VectorStore):
         """Initialize with Weaviate client."""
 
         self._client = client
+        _register_integration(client)
         self._index_name = index_name or f"LangChain_{uuid4().hex}"
         self._embedding = embedding
         self._text_key = text_key
