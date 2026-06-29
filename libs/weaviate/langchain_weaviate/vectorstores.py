@@ -26,6 +26,10 @@ from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
 from langchain_core.runnables.config import run_in_executor
 from langchain_core.vectorstores import VectorStore
+from weaviate.exceptions import (  # type: ignore
+    WeaviateBatchError,
+    WeaviateInsertManyAllFailedError,
+)
 
 from langchain_weaviate.utils import maximal_marginal_relevance
 
@@ -242,6 +246,12 @@ class WeaviateVectorStore(VectorStore):
 
                 ids.append(_id)
 
+        # ``batch.dynamic()`` allocates a fresh result buffer on entry, so
+        # ``failed_objects`` reflects only this call's failures. Unlike the raw
+        # weaviate-client batch API (which never raises and silently drops
+        # failures into ``failed_objects``), we surface them: returning ids for
+        # objects that were never stored is the silent-failure bug, and every
+        # other LangChain vector store raises when an insert fails.
         failed_objs = self._client.batch.failed_objects
         if failed_objs:
             error_messages = []
@@ -251,10 +261,15 @@ class WeaviateVectorStore(VectorStore):
                 )
                 logger.error(err_message)
                 error_messages.append(err_message)
-            
-            raise ValueError(
-                f"Failed to add {len(failed_objs)} object(s) to Weaviate:\n"
-                + "\n".join(error_messages)
+
+            summary = "\n".join(error_messages)
+            if len(failed_objs) == len(ids):
+                # Mirror the async ``insert_many`` path, which raises this when
+                # every object fails.
+                raise WeaviateInsertManyAllFailedError(summary)
+            raise WeaviateBatchError(
+                f"Failed to add {len(failed_objs)} of {len(ids)} object(s) "
+                f"to Weaviate:\n{summary}"
             )
 
         return ids
@@ -681,22 +696,32 @@ class WeaviateVectorStore(VectorStore):
             ids.append(_id)
 
         # Use async client's insert_many method instead of batch
+        error_messages = []
         async with self._atenant_context(tenant) as collection:
             # Process objects in batches of 100 to avoid overwhelming the server
             batch_size = 100
             for i in range(0, len(objects_to_insert), batch_size):
                 batch = objects_to_insert[i : i + batch_size]
-                # Use insert_many for batch operations with async client.
                 # insert_many raises WeaviateInsertManyAllFailedError (and other
-                # WeaviateBaseError subclasses) on total/structural failure; we
-                # let those propagate. Partial failures are returned in
-                # result.errors, mirroring the sync batch failed_objects path.
+                # WeaviateBaseError subclasses) when an entire insert call fails;
+                # we let those propagate. Partial failures are returned in
+                # result.errors -- collect them and raise below so we never
+                # return ids for objects that were not stored (mirrors the sync
+                # add_texts contract and the rest of the LangChain ecosystem).
                 result = await collection.data.insert_many(batch)  # type: ignore
                 for err in result.errors.values():
-                    logger.error(
+                    err_message = (
                         f"Failed to add object: {err.original_uuid}\n"
                         f"Reason: {err.message}"
                     )
+                    logger.error(err_message)
+                    error_messages.append(err_message)
+
+        if error_messages:
+            raise WeaviateBatchError(
+                f"Failed to add {len(error_messages)} of {len(ids)} object(s) "
+                f"to Weaviate:\n" + "\n".join(error_messages)
+            )
 
         return ids
 

@@ -335,15 +335,19 @@ async def test_batch_insertion_error_handling(
 
 
 @pytest.mark.asyncio
-async def test_aadd_texts_logs_partial_insert_many_errors(
+async def test_aadd_texts_raises_on_partial_insert_many_errors(
     mock_weaviate_client: MagicMock, embedding: Any, caplog: Any
 ) -> None:
-    """Partial insert_many failures are logged (mirroring the sync batch path).
+    """Partial insert_many failures are logged AND raised.
 
     insert_many returns per-object failures in ``result.errors`` rather than
-    raising (it only raises when *all* objects fail), so ``aadd_texts`` must
-    surface them via the logger like the synchronous ``failed_objects`` path.
+    raising (it only raises when *all* objects fail). Returning ids for objects
+    that were never stored is a silent failure, so ``aadd_texts`` logs the
+    failures and raises ``WeaviateBatchError`` -- consistent with the sync
+    ``add_texts`` path and the rest of the LangChain ecosystem.
     """
+    from weaviate.exceptions import WeaviateBatchError
+
     docsearch = WeaviateVectorStore(
         client=mock_weaviate_client,
         index_name="TestIndex",
@@ -373,10 +377,9 @@ async def test_aadd_texts_logs_partial_insert_many_errors(
 
     with patch.object(docsearch, "_atenant_context", fake_tenant_context):
         with caplog.at_level(logging.ERROR):
-            ids = await docsearch.aadd_texts(["ok text", "bad text"])
+            with pytest.raises(WeaviateBatchError, match="Failed to add 1 of 2"):
+                await docsearch.aadd_texts(["ok text", "bad text"])
 
-    # All ids are still returned (consistent with the sync path)
-    assert len(ids) == 2
     mock_collection.data.insert_many.assert_awaited_once()
     assert "Failed to add object: failed-uuid-123" in caplog.text
     assert "Reason: shard overloaded" in caplog.text
@@ -870,7 +873,13 @@ def test_logging_configuration() -> None:
 def test_add_texts_batch_failed_objects(
     mock_weaviate_client: MagicMock, caplog: Any
 ) -> None:
-    """Test handling of failed objects in add_texts method."""
+    """Failed objects in add_texts are logged AND raised.
+
+    Here the single object fails (all-failed), so add_texts raises
+    ``WeaviateInsertManyAllFailedError`` -- mirroring the async insert_many path.
+    """
+    from weaviate.exceptions import WeaviateInsertManyAllFailedError
+
     # Mock client
     mock_client = MagicMock()
     mock_collection = MagicMock()
@@ -904,12 +913,57 @@ def test_add_texts_batch_failed_objects(
 
         # Capture logs
         with caplog.at_level(logging.ERROR):
-            # Call add_texts which should process failed objects
-            store.add_texts(["test"])
+            # Call add_texts which should log the failure and then raise
+            with pytest.raises(WeaviateInsertManyAllFailedError):
+                store.add_texts(["test"])
 
             # Verify error was logged
             assert "Failed to add object: test-uuid" in caplog.text
             assert "Test failure message" in caplog.text
+
+
+def test_add_texts_partial_failed_objects(
+    mock_weaviate_client: MagicMock, caplog: Any
+) -> None:
+    """Partial failures in add_texts are logged AND raised as WeaviateBatchError.
+
+    Two objects are sent and one fails, so it is a partial failure (not
+    all-failed) and add_texts raises ``WeaviateBatchError`` rather than
+    silently returning ids for the object that was never stored.
+    """
+    from weaviate.exceptions import WeaviateBatchError
+
+    mock_client = MagicMock()
+    mock_collection = MagicMock()
+    mock_client.collections.get.return_value = mock_collection
+
+    # One of the two objects failed to index.
+    failed_obj = MagicMock()
+    failed_obj.original_uuid = "bad-uuid"
+    failed_obj.message = "shard overloaded"
+
+    mock_client.batch = MagicMock()
+    mock_client.batch.dynamic.return_value.__enter__.return_value = MagicMock()
+    mock_client.batch.failed_objects = [failed_obj]
+
+    with patch.object(WeaviateVectorStore, "__init__", return_value=None):
+        store = WeaviateVectorStore(
+            client=mock_client, index_name="test", text_key="text"
+        )
+        store._client = mock_client
+        store._embedding = FakeEmbeddings()
+        store._index_name = "test"
+        store._text_key = "text"
+        store._collection = mock_collection
+        store._query_attrs = ["text"]
+        store._multi_tenancy_enabled = False
+
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(WeaviateBatchError, match="Failed to add 1 of 2"):
+                store.add_texts(["ok text", "bad text"])
+
+        assert "Failed to add object: bad-uuid" in caplog.text
+        assert "shard overloaded" in caplog.text
 
 
 def test_max_marginal_relevance_search_no_embedding(
