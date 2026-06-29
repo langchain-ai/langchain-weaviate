@@ -6,8 +6,9 @@ else:
     # for python 3.10 and below, which doesnt have stdlib tomllib
     import tomli as tomllib
 
-from packaging.version import parse as parse_version
 import re
+
+from packaging.version import parse as parse_version
 
 MIN_VERSION_LIBS = ["langchain-core"]
 

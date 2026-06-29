@@ -1,4 +1,5 @@
 import datetime
+import logging
 from typing import Union
 
 import numpy as np
@@ -7,8 +8,27 @@ import pytest
 from langchain_weaviate.vectorstores import (
     WeaviateVectorStore,
     _default_score_normalizer,
+    _integration_version,
     _json_serializable,
 )
+
+
+def test_logger_debug_level() -> None:
+    """Test line 31: Verify logger is set to DEBUG level on module import."""
+    import importlib
+    import sys
+
+    # Force reload to ensure line 31 is executed during this test
+    if "langchain_weaviate.vectorstores" in sys.modules:
+        importlib.reload(sys.modules["langchain_weaviate.vectorstores"])
+    else:
+        from langchain_weaviate import vectorstores  # noqa: F401
+
+    # Get the logger from the module
+    logger = logging.getLogger("langchain_weaviate.vectorstores")
+
+    # Verify it's set to DEBUG
+    assert logger.level == logging.DEBUG
 
 
 @pytest.mark.parametrize("val, expected_result", [(1e6, 1.0), (-1e6, 0.0)])
@@ -39,3 +59,243 @@ def test_from_texts_raises_value_error_when_client_is_none() -> None:
         WeaviateVectorStore.from_texts(
             texts=["sample text"], embedding=None, client=None
         )
+
+
+def test_select_relevance_score_fn_with_custom_function() -> None:
+    """Test that custom relevance_score_fn is used when provided."""
+    from unittest.mock import MagicMock
+
+    def custom_score_fn(score: float) -> float:
+        return score * 2.0
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="test",
+        text_key="text",
+        relevance_score_fn=custom_score_fn,
+    )
+
+    result_fn = vectorstore._select_relevance_score_fn()
+    assert result_fn == custom_score_fn
+    assert result_fn(0.5) == 1.0
+
+
+def test_max_marginal_relevance_search_without_embeddings() -> None:
+    """Test that MMR search raises error when no embeddings provided."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client, index_name="test", text_key="text", embedding=None
+    )
+
+    with pytest.raises(ValueError, match="requires a suitable Embeddings object"):
+        vectorstore.max_marginal_relevance_search("query", k=4)
+
+
+def test_vectorstore_with_custom_schema() -> None:
+    """Test that WeaviateVectorStore accepts and uses custom schema."""
+    from unittest.mock import MagicMock
+
+    custom_schema = {
+        "class": "CustomClass",
+        "properties": [
+            {"name": "custom_text", "dataType": ["text"]},
+            {"name": "custom_field", "dataType": ["string"]},
+        ],
+        "vectorizer": "none",
+    }
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="CustomClass",
+        text_key="custom_text",
+        schema=custom_schema,
+    )
+
+    # Verify that the custom schema was used
+    assert vectorstore.schema == custom_schema
+    mock_client.collections.create_from_dict.assert_called_once_with(custom_schema)
+
+
+def test_vectorstore_with_default_schema() -> None:
+    """Test that WeaviateVectorStore uses default schema when none provided."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+    )
+
+    # Verify that default schema was created
+    assert vectorstore.schema["class"] == "TestClass"
+    assert vectorstore.schema["properties"][0]["name"] == "text"
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is False
+    mock_client.collections.create_from_dict.assert_called_once()
+
+
+def test_vectorstore_with_custom_schema_and_multi_tenancy() -> None:
+    """Test that custom schema is used as-is, even with use_multi_tenancy=True."""
+    from unittest.mock import MagicMock
+
+    custom_schema = {
+        "class": "CustomClass",
+        "properties": [{"name": "text", "dataType": ["text"]}],
+        "MultiTenancyConfig": {"enabled": True},
+    }
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = True
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="CustomClass",
+        text_key="text",
+        schema=custom_schema,
+        use_multi_tenancy=True,
+    )
+
+    # When custom schema is provided, it should be used as-is
+    # use_multi_tenancy parameter should not modify it
+    assert vectorstore.schema == custom_schema
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True
+
+
+def test_vectorstore_with_multi_tenancy_dict() -> None:
+    """Test that use_multi_tenancy accepts a dict with custom config."""
+    from unittest.mock import MagicMock
+
+    multi_tenancy_config = {
+        "enabled": True,
+        "autoTenantCreation": False,
+        "autoTenantActivation": False,
+    }
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = True
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+        use_multi_tenancy=multi_tenancy_config,
+    )
+
+    # Should use the provided dict directly
+    assert vectorstore.schema["MultiTenancyConfig"] == multi_tenancy_config
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True
+    assert vectorstore.schema["MultiTenancyConfig"]["autoTenantCreation"] is False
+    assert vectorstore.schema["MultiTenancyConfig"]["autoTenantActivation"] is False
+
+
+def test_vectorstore_with_multi_tenancy_bool_true() -> None:
+    """Test that use_multi_tenancy=True creates default config."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = True
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+        use_multi_tenancy=True,
+    )
+
+    # Should create default config with enabled=True
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is True
+
+
+def test_registers_integration_header() -> None:
+    """The X-Weaviate-Client-Integration header is registered on construction."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    WeaviateVectorStore(client=mock_client, index_name="test", text_key="text")
+
+    mock_client.integrations.configure.assert_called_once()
+    (config,) = mock_client.integrations.configure.call_args.args
+    header = config._to_header()
+    assert header == {
+        "X-Weaviate-Client-Integration": f"langchain-python/{_integration_version()}"
+    }
+
+
+def test_integration_registration_failure_does_not_break_init() -> None:
+    """Best-effort: a failure while registering the header must not break init."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+    mock_client.integrations.configure.side_effect = RuntimeError("boom")
+
+    # Should not raise despite the integrations API blowing up.
+    vectorstore = WeaviateVectorStore(
+        client=mock_client, index_name="test", text_key="text"
+    )
+    assert vectorstore._client is mock_client
+
+
+def test_integration_version_falls_back_to_unknown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """_integration_version returns 'unknown' when metadata lookup fails."""
+    import importlib.metadata
+
+    def _raise(_: str) -> str:
+        raise importlib.metadata.PackageNotFoundError("langchain-weaviate")
+
+    monkeypatch.setattr(importlib.metadata, "version", _raise)
+    assert _integration_version() == "unknown"
+
+
+def test_vectorstore_with_multi_tenancy_bool_false() -> None:
+    """Test that use_multi_tenancy=False creates disabled config."""
+    from unittest.mock import MagicMock
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = False
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+        use_multi_tenancy=False,
+    )
+
+    # Should create config with multi-tenancy disabled
+    assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is False

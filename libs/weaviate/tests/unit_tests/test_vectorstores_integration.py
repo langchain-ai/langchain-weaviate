@@ -372,7 +372,7 @@ def test_delete(
 
     total_docs_before_delete = (
         weaviate_client.collections.get(index_name)
-        .with_tenant(tenant)  # type: ignore
+        .with_tenant(tenant)  # type: ignore[arg-type]
         .aggregate.over_all(total_count=True)
         .total_count
     )
@@ -380,7 +380,7 @@ def test_delete(
 
     total_docs_after_delete = (
         weaviate_client.collections.get(index_name)
-        .with_tenant(tenant)  # type: ignore
+        .with_tenant(tenant)  # type: ignore[arg-type]
         .aggregate.over_all(total_count=True)
         .total_count
     )
@@ -579,7 +579,7 @@ def test_embedding_property(
         embedding=consistent_embedding,
     )
 
-    assert type(docsearch.embeddings) == type(consistent_embedding)
+    assert isinstance(docsearch.embeddings, type(consistent_embedding))
 
 
 def test_documents_with_many_properties(

@@ -14,7 +14,10 @@ if __name__ == "__main__":
 
     if len(files) == 300:
         # max diff length is 300 files - there are likely files missing
-        raise ValueError("Max diff reached. Please manually run CI on changed libs.")
+        # max diff length is 300 files - there are likely files missing
+        # Fallback to running all tests to be safe
+        dirs_to_run["test"].update(LIB_DIRS)
+        dirs_to_run["lint"].update(LIB_DIRS)
 
     for file in files:
         if any(

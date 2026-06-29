@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import datetime
+import importlib.metadata
 import logging
 from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager, contextmanager
@@ -44,12 +45,12 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def _default_schema(index_name: str) -> Dict:
+def _default_schema(index_name: str, text_key: str = "text") -> Dict:
     return {
         "class": index_name,
         "properties": [
             {
-                "name": "text",
+                "name": text_key,
                 "dataType": ["text"],
             }
         ],
@@ -68,6 +69,42 @@ def _json_serializable(value: Any) -> Any:
     if isinstance(value, datetime.datetime):
         return value.isoformat()
     return value
+
+
+_INTEGRATION_NAME = "langchain-python"
+
+
+def _integration_version() -> str:
+    try:
+        return importlib.metadata.version("langchain-weaviate")
+    except Exception:
+        return "unknown"
+
+
+def _register_integration(client: "weaviate.WeaviateClient") -> None:
+    """Best-effort: tag the connection with the X-Weaviate-Client-Integration
+    header so Weaviate telemetry can track langchain usage. Never raises.
+
+    The header is applied to both HTTP and gRPC transports via the weaviate
+    client's public integrations API. The import and config class live inside
+    the try block so older ``weaviate-client`` releases that lack this API
+    simply skip registration instead of breaking construction.
+    """
+    try:
+        from pydantic import Field
+        from weaviate.connect.integrations import _IntegrationConfig  # type: ignore
+
+        value = f"{_INTEGRATION_NAME}/{_integration_version()}"
+
+        class _LangChainIntegration(_IntegrationConfig):
+            integration: str = Field(
+                default=value,
+                serialization_alias="X-Weaviate-Client-Integration",
+            )
+
+        client.integrations.configure(_LangChainIntegration())
+    except Exception:
+        logger.debug("Could not register langchain integration header", exc_info=True)
 
 
 class WeaviateVectorStore(VectorStore):
@@ -91,11 +128,12 @@ class WeaviateVectorStore(VectorStore):
         index_name: Optional[str],
         text_key: str,
         embedding: Optional[Embeddings] = None,
+        schema: Optional[dict] = None,
         attributes: Optional[List[str]] = None,
         relevance_score_fn: Optional[
             Callable[[float], float]
         ] = _default_score_normalizer,
-        use_multi_tenancy: bool = False,
+        use_multi_tenancy: Union[bool, Dict] = False,
         client_async: Optional[weaviate.WeaviateAsyncClient] = None,
     ):
         """Initialize with Weaviate client."""
@@ -107,6 +145,7 @@ class WeaviateVectorStore(VectorStore):
             raise TypeError("client_async must be an instance of WeaviateAsyncClient")
         self._client = client
         self._client_async = client_async
+        _register_integration(client)
         self._index_name = index_name or f"LangChain_{uuid4().hex}"
         self._embedding = embedding
         self._text_key = text_key
@@ -115,11 +154,24 @@ class WeaviateVectorStore(VectorStore):
         if attributes is not None:
             self._query_attrs.extend(attributes)
 
-        schema = _default_schema(self._index_name)
-        schema["MultiTenancyConfig"] = {"enabled": use_multi_tenancy}
+        if not schema:
+            self.schema = _default_schema(self._index_name, self._text_key)
+            # Handle multi-tenancy config
+            if isinstance(use_multi_tenancy, bool):
+                self.schema["MultiTenancyConfig"] = {
+                    "enabled": use_multi_tenancy,
+                    "autoTenantCreation": use_multi_tenancy,
+                    "autoTenantActivation": use_multi_tenancy,
+                }
+            else:
+                # use_multi_tenancy is a dict, use it directly
+                self.schema["MultiTenancyConfig"] = use_multi_tenancy
+        else:
+            self.schema = schema
+
         # check whether the index already exists
         if not client.collections.exists(self._index_name):
-            client.collections.create_from_dict(schema)
+            client.collections.create_from_dict(self.schema)
 
         # store collection for convenience
         # this does not actually send a request to weaviate
