@@ -1175,5 +1175,7 @@ async def test_aadd_texts_with_generator_input(
 
     assert len(ids) == 3
     mock_collection.data.insert_many.assert_awaited_once()
-    (inserted_batch,) = mock_collection.data.insert_many.await_args.args
+    await_args = mock_collection.data.insert_many.await_args
+    assert await_args is not None
+    (inserted_batch,) = await_args.args
     assert len(inserted_batch) == 3
