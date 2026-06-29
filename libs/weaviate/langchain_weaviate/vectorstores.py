@@ -679,9 +679,17 @@ class WeaviateVectorStore(VectorStore):
             batch_size = 100
             for i in range(0, len(objects_to_insert), batch_size):
                 batch = objects_to_insert[i : i + batch_size]
-                # Use insert_many for batch operations with async client
+                # Use insert_many for batch operations with async client.
+                # insert_many raises WeaviateInsertManyAllFailedError (and other
+                # WeaviateBaseError subclasses) on total/structural failure; we
+                # let those propagate. Partial failures are returned in
+                # result.errors, mirroring the sync batch failed_objects path.
                 result = await collection.data.insert_many(batch)  # type: ignore
-                assert result is not None
+                for err in result.errors.values():
+                    logger.error(
+                        f"Failed to add object: {err.original_uuid}\n"
+                        f"Reason: {err.message}"
+                    )
 
         return ids
 

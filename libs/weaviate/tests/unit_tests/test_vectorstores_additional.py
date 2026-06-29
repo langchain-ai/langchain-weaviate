@@ -334,6 +334,54 @@ async def test_batch_insertion_error_handling(
 
 
 @pytest.mark.asyncio
+async def test_aadd_texts_logs_partial_insert_many_errors(
+    mock_weaviate_client: MagicMock, embedding: Any, caplog: Any
+) -> None:
+    """Partial insert_many failures are logged (mirroring the sync batch path).
+
+    insert_many returns per-object failures in ``result.errors`` rather than
+    raising (it only raises when *all* objects fail), so ``aadd_texts`` must
+    surface them via the logger like the synchronous ``failed_objects`` path.
+    """
+    docsearch = WeaviateVectorStore(
+        client=mock_weaviate_client,
+        index_name="TestIndex",
+        text_key="text",
+        embedding=embedding,
+        client_async=MagicMock(),
+    )
+    # __init__ is mocked out by the fixture, so set attributes directly
+    docsearch._client_async = MagicMock()
+    docsearch._embedding = embedding
+    docsearch._text_key = "text"
+    docsearch._multi_tenancy_enabled = False
+
+    # One object succeeds, one fails -> insert_many returns (does not raise)
+    failed = MagicMock()
+    failed.original_uuid = "failed-uuid-123"
+    failed.message = "shard overloaded"
+    insert_result = MagicMock()
+    insert_result.errors = {1: failed}
+
+    mock_collection = MagicMock()
+    mock_collection.data.insert_many = AsyncMock(return_value=insert_result)
+
+    @asynccontextmanager
+    async def fake_tenant_context(tenant: Any = None) -> AsyncGenerator[Any, None]:
+        yield mock_collection
+
+    with patch.object(docsearch, "_atenant_context", fake_tenant_context):
+        with caplog.at_level(logging.ERROR):
+            ids = await docsearch.aadd_texts(["ok text", "bad text"])
+
+    # All ids are still returned (consistent with the sync path)
+    assert len(ids) == 2
+    mock_collection.data.insert_many.assert_awaited_once()
+    assert "Failed to add object: failed-uuid-123" in caplog.text
+    assert "Reason: shard overloaded" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_max_marginal_relevance_without_embeddings(
     mock_weaviate_client: MagicMock,
 ) -> None:
