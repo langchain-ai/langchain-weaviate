@@ -247,7 +247,7 @@ def test_registers_integration_header() -> None:
     (config,) = mock_client.integrations.configure.call_args.args
     header = config._to_header()
     assert header == {
-        "X-Weaviate-Client-Integration": f"langchain/{_integration_version()}"
+        "X-Weaviate-Client-Integration": f"langchain-python/{_integration_version()}"
     }
 
 
