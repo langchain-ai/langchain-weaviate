@@ -1103,3 +1103,77 @@ async def test_atenant_context_missing_tenant(
         ValueError, match="cannot perform asearch with synchronous client"
     ):
         await docsearch._perform_asearch(query="test", k=5)
+
+
+def test_add_texts_with_generator_input(
+    mock_weaviate_client: MagicMock, embedding: Any
+) -> None:
+    """``texts`` may be a generator; it must be consumed exactly once.
+
+    ``add_texts`` embeds and then batches the same texts. A generator is
+    exhausted by embedding, so it must be materialized once and reused --
+    otherwise nothing is inserted (a silent data-loss bug).
+    """
+    mock_batch = MagicMock()
+    mock_client = MagicMock()
+    mock_client.batch.dynamic.return_value.__enter__.return_value = mock_batch
+    mock_client.batch.failed_objects = []
+
+    docsearch = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestIndex",
+        text_key="text",
+        embedding=embedding,
+    )
+    docsearch._client = mock_client
+    docsearch._index_name = "TestIndex"
+    docsearch._embedding = embedding
+    docsearch._text_key = "text"
+    docsearch._multi_tenancy_enabled = False
+
+    texts = (t for t in ["alpha", "beta", "gamma"])
+    ids = docsearch.add_texts(texts)
+
+    assert len(ids) == 3
+    assert mock_batch.add_object.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_aadd_texts_with_generator_input(
+    mock_weaviate_client: MagicMock, embedding: Any
+) -> None:
+    """``aadd_texts`` must materialize a generator ``texts`` exactly once.
+
+    Mirrors ``test_add_texts_with_generator_input``: a generator consumed by
+    embedding must still be available when building the insert_many batch.
+    """
+    insert_result = MagicMock()
+    insert_result.errors = {}
+
+    mock_collection = MagicMock()
+    mock_collection.data.insert_many = AsyncMock(return_value=insert_result)
+
+    docsearch = WeaviateVectorStore(
+        client=mock_weaviate_client,
+        index_name="TestIndex",
+        text_key="text",
+        embedding=embedding,
+        client_async=MagicMock(),
+    )
+    docsearch._client_async = MagicMock()
+    docsearch._embedding = embedding
+    docsearch._text_key = "text"
+    docsearch._multi_tenancy_enabled = False
+
+    @asynccontextmanager
+    async def fake_tenant_context(tenant: Any = None) -> AsyncGenerator[Any, None]:
+        yield mock_collection
+
+    texts = (t for t in ["alpha", "beta", "gamma"])
+    with patch.object(docsearch, "_atenant_context", fake_tenant_context):
+        ids = await docsearch.aadd_texts(texts)
+
+    assert len(ids) == 3
+    mock_collection.data.insert_many.assert_awaited_once()
+    (inserted_batch,) = mock_collection.data.insert_many.await_args.args
+    assert len(inserted_batch) == 3

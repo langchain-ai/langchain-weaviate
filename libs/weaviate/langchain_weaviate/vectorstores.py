@@ -224,13 +224,17 @@ class WeaviateVectorStore(VectorStore):
             tenant_objs = [weaviate.classes.tenants.Tenant(name=tenant)]
             self._collection.tenants.create(tenants=tenant_objs)
 
+        # Materialize once: ``texts`` may be a generator, and we consume it both
+        # for embedding and for building the batch below.
+        texts_list = list(texts)
+
         ids = []
         embeddings: Optional[List[List[float]]] = None
         if self._embedding:
-            embeddings = self._embedding.embed_documents(list(texts))
+            embeddings = self._embedding.embed_documents(texts_list)
 
         with self._client.batch.dynamic() as batch:
-            for i, text in enumerate(texts):
+            for i, text in enumerate(texts_list):
                 data_properties = {self._text_key: text}
                 if metadatas is not None:
                     for key, val in metadatas[i].items():
@@ -679,13 +683,14 @@ class WeaviateVectorStore(VectorStore):
                 tenants=tenant_objs
             )
 
+        # Materialize once: ``texts`` may be a generator, and we consume it both
+        # for embedding and for building the objects below.
+        texts_list = list(texts)
+
         ids = []
         embeddings: Optional[List[List[float]]] = None
         if self._embedding:
-            embeddings = await self._embedding.aembed_documents(list(texts))
-
-        # Convert texts to list
-        texts_list = list(texts)
+            embeddings = await self._embedding.aembed_documents(texts_list)
 
         # Prepare objects for insertion
         objects_to_insert = []
