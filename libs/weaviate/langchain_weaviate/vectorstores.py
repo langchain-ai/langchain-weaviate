@@ -203,7 +203,17 @@ class WeaviateVectorStore(VectorStore):
         tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[str]:
-        """Upload texts with metadata (properties) to Weaviate."""
+        """Upload texts with metadata (properties) to Weaviate.
+
+        Failed insertions are surfaced as weaviate-native exceptions rather than
+        returning ids for objects that were never stored. Both subclass
+        ``weaviate.exceptions.WeaviateBaseError``, so callers can catch that for
+        a single catch-all.
+
+        Raises:
+            WeaviateInsertManyAllFailedError: If every object fails to be added.
+            WeaviateBatchError: If some (but not all) objects fail to be added.
+        """
         from weaviate.util import get_valid_uuid  # type: ignore
 
         if tenant and not self._does_tenant_exist(tenant):
@@ -641,7 +651,17 @@ class WeaviateVectorStore(VectorStore):
         tenant: Optional[str] = None,
         **kwargs: Any,
     ) -> List[str]:
-        """Add texts to Weaviate asynchronously."""
+        """Add texts to Weaviate asynchronously.
+
+        Mirrors the synchronous ``add_texts`` failure contract: failed
+        insertions are surfaced as weaviate-native exceptions rather than
+        returning ids for objects that were never stored. Both subclass
+        ``weaviate.exceptions.WeaviateBaseError``.
+
+        Raises:
+            WeaviateInsertManyAllFailedError: If every object fails to be added.
+            WeaviateBatchError: If some (but not all) objects fail to be added.
+        """
         if self._client_async is None:
             logger.warning("client_async is None, using synchronous client instead")
             return await run_in_executor(
