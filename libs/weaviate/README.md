@@ -35,6 +35,27 @@ pip install langchain-weaviate
 
 Please see the included [Jupyter notebook](docs/vectorstores.ipynb) for an example of how to use this package.
 
+### Self-querying retriever
+
+`WeaviateTranslator` lets you use a `WeaviateVectorStore` with LangChain's
+[self-querying retriever](https://python.langchain.com/docs/how_to/self_query/),
+which turns a natural-language question into both a search query and a structured
+metadata filter. Pass it explicitly via `structured_query_translator`:
+
+```python
+from langchain.retrievers.self_query.base import SelfQueryRetriever
+from langchain_weaviate import WeaviateTranslator, WeaviateVectorStore
+
+vectorstore = WeaviateVectorStore(...)
+retriever = SelfQueryRetriever.from_llm(
+    llm,
+    vectorstore,
+    document_contents,
+    metadata_field_info,
+    structured_query_translator=WeaviateTranslator(),
+)
+```
+
 ## Further resources
 
 - [LangChain documentation](https://python.langchain.com/docs)
