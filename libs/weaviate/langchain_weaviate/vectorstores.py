@@ -70,7 +70,7 @@ def _json_serializable(value: Any) -> Any:
     return value
 
 
-_INTEGRATION_NAME = "langchain"
+_INTEGRATION_NAME = "langchain-python"
 
 
 def _integration_version() -> str:
