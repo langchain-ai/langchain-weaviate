@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
+import weaviate
 from langchain_core.documents import Document
 from weaviate.client import WeaviateClient
 
@@ -980,60 +981,35 @@ async def test_aadd_texts_insert_many_exception(
 async def test_perform_asearch_weaviate_query_exception(
     mock_weaviate_client: MagicMock, embedding: Any
 ) -> None:
-    """Test _perform_asearch handles WeaviateQueryException properly."""
+    """_perform_asearch wraps a WeaviateQueryException in a ValueError.
 
-    # Create a mock exception class similar to WeaviateQueryException
-    class MockWeaviateQueryException(Exception):
-        pass
-
-    # Create mock objects
-    mock_client_async = MagicMock()
-    mock_collection = MagicMock()
-    mock_query = MagicMock()
-
-    # Configure mocks
-    mock_client_async.collections.get.return_value = mock_collection
-    mock_collection.query = mock_query
-
-    # Make hybrid raise our mock exception
-    mock_query.hybrid = AsyncMock(
-        side_effect=MockWeaviateQueryException("Query failed")
-    )
-
-    # Create store
+    Drives the real method: the mocked collection's ``query.hybrid`` raises the
+    actual weaviate exception, exercising the try/except in ``_perform_asearch``.
+    """
     docsearch = WeaviateVectorStore(
         client=mock_weaviate_client,
-        client_async=mock_client_async,
+        client_async=MagicMock(),
         index_name="test",
         text_key="text",
         embedding=embedding,
     )
-
-    # Set attributes
-    docsearch._client_async = mock_client_async
-    docsearch._index_name = "test"
+    # __init__ is mocked out by the fixture, so set attributes directly
+    docsearch._client_async = MagicMock()
     docsearch._embedding = embedding
     docsearch._text_key = "text"
     docsearch._multi_tenancy_enabled = False
 
-    # Create a custom atenant_context implementation that returns our mocked collection
+    mock_collection = MagicMock()
+    mock_collection.query.hybrid = AsyncMock(
+        side_effect=weaviate.exceptions.WeaviateQueryException("Query failed", "GRPC")
+    )
+
     @asynccontextmanager
-    async def mock_atenant_context(*args: Any, **kwargs: Any) -> AsyncGenerator:
+    async def fake_tenant_context(tenant: Any = None) -> AsyncGenerator[Any, None]:
         yield mock_collection
 
-    # Add error handling patch similar to what's in the actual code
-    async def custom_perform_asearch(*args: Any, **kwargs: Any) -> Any:
-        try:
-            raise MockWeaviateQueryException("Query failed")
-        except MockWeaviateQueryException as e:
-            raise ValueError(f"Error during query: {e}")
-
-    # Apply the patches
-    with patch.object(
-        docsearch, "_atenant_context", side_effect=mock_atenant_context
-    ), patch.object(docsearch, "_perform_asearch", side_effect=custom_perform_asearch):
-        # Call _perform_asearch and expect exception
-        with pytest.raises(ValueError, match="Error during query: Query failed"):
+    with patch.object(docsearch, "_atenant_context", fake_tenant_context):
+        with pytest.raises(ValueError, match="Error during query"):
             await docsearch._perform_asearch(query="test", k=5)
 
 
