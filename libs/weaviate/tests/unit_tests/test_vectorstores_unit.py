@@ -61,6 +61,21 @@ def test_from_texts_raises_value_error_when_client_is_none() -> None:
         )
 
 
+def test_init_raises_type_error_when_client_async_is_invalid() -> None:
+    """client_async, when provided, must be a WeaviateAsyncClient."""
+    from unittest.mock import MagicMock
+
+    with pytest.raises(
+        TypeError, match="client_async must be an instance of WeaviateAsyncClient"
+    ):
+        WeaviateVectorStore(
+            client=MagicMock(),
+            index_name="TestClass",
+            text_key="text",
+            client_async="not-an-async-client",  # type: ignore[arg-type]
+        )
+
+
 def test_select_relevance_score_fn_with_custom_function() -> None:
     """Test that custom relevance_score_fn is used when provided."""
     from unittest.mock import MagicMock
