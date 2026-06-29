@@ -224,17 +224,18 @@ class WeaviateVectorStore(VectorStore):
             tenant_objs = [weaviate.classes.tenants.Tenant(name=tenant)]
             self._collection.tenants.create(tenants=tenant_objs)
 
-        # Materialize once: ``texts`` may be a generator, and we consume it both
-        # for embedding and for building the batch below.
-        texts_list = list(texts)
-
         ids = []
         embeddings: Optional[List[List[float]]] = None
         if self._embedding:
-            embeddings = self._embedding.embed_documents(texts_list)
+            # ``texts`` may be a generator, and we consume it both for embedding
+            # and for building the batch below -- materialize it once so the
+            # batch loop is not left iterating an exhausted iterator. When there
+            # is no embedding we iterate it a single time and avoid the copy.
+            texts = list(texts)
+            embeddings = self._embedding.embed_documents(texts)
 
         with self._client.batch.dynamic() as batch:
-            for i, text in enumerate(texts_list):
+            for i, text in enumerate(texts):
                 data_properties = {self._text_key: text}
                 if metadatas is not None:
                     for key, val in metadatas[i].items():
@@ -683,18 +684,19 @@ class WeaviateVectorStore(VectorStore):
                 tenants=tenant_objs
             )
 
-        # Materialize once: ``texts`` may be a generator, and we consume it both
-        # for embedding and for building the objects below.
-        texts_list = list(texts)
-
         ids = []
         embeddings: Optional[List[List[float]]] = None
         if self._embedding:
-            embeddings = await self._embedding.aembed_documents(texts_list)
+            # ``texts`` may be a generator, and we consume it both for embedding
+            # and for building the objects below -- materialize it once so the
+            # object loop is not left iterating an exhausted iterator. When there
+            # is no embedding we iterate it a single time and avoid the copy.
+            texts = list(texts)
+            embeddings = await self._embedding.aembed_documents(texts)
 
         # Prepare objects for insertion
         objects_to_insert = []
-        for i, text in enumerate(texts_list):
+        for i, text in enumerate(texts):
             data_properties = {self._text_key: text}
             if metadatas is not None and i < len(metadatas):
                 for key, val in metadatas[i].items():
@@ -743,9 +745,16 @@ class WeaviateVectorStore(VectorStore):
                     error_messages.append(err_message)
 
         if error_messages:
+            summary = "\n".join(error_messages)
+            if len(error_messages) == len(ids):
+                # ``insert_many`` is expected to raise this itself when every
+                # object fails, but if a client version instead returns the
+                # failures in ``result.errors`` we still honor the documented
+                # all-failed contract (mirrors the sync ``add_texts`` path).
+                raise WeaviateInsertManyAllFailedError(summary)
             raise WeaviateBatchError(
                 f"Failed to add {len(error_messages)} of {len(ids)} object(s) "
-                f"to Weaviate:\n" + "\n".join(error_messages)
+                f"to Weaviate:\n" + summary
             )
 
         return ids

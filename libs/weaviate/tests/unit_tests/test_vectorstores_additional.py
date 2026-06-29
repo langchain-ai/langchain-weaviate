@@ -386,6 +386,50 @@ async def test_aadd_texts_raises_on_partial_insert_many_errors(
 
 
 @pytest.mark.asyncio
+async def test_aadd_texts_raises_all_failed_when_every_object_errors(
+    mock_weaviate_client: MagicMock, embedding: Any, caplog: Any
+) -> None:
+    """When every object is reported in ``result.errors``, raise all-failed.
+
+    ``insert_many`` normally raises ``WeaviateInsertManyAllFailedError`` itself
+    when all objects fail, but some client versions return the failures in
+    ``result.errors`` instead. In that case ``aadd_texts`` must still honor the
+    documented all-failed contract rather than raising ``WeaviateBatchError``.
+    """
+    from weaviate.exceptions import WeaviateInsertManyAllFailedError
+
+    docsearch = WeaviateVectorStore(
+        client=mock_weaviate_client,
+        index_name="TestIndex",
+        text_key="text",
+        embedding=embedding,
+        client_async=MagicMock(),
+    )
+    docsearch._client_async = MagicMock()
+    docsearch._embedding = embedding
+    docsearch._text_key = "text"
+    docsearch._multi_tenancy_enabled = False
+
+    # Both objects fail -> insert_many returns (does not raise)
+    err0 = MagicMock(original_uuid="uuid-0", message="boom 0")
+    err1 = MagicMock(original_uuid="uuid-1", message="boom 1")
+    insert_result = MagicMock()
+    insert_result.errors = {0: err0, 1: err1}
+
+    mock_collection = MagicMock()
+    mock_collection.data.insert_many = AsyncMock(return_value=insert_result)
+
+    @asynccontextmanager
+    async def fake_tenant_context(tenant: Any = None) -> AsyncGenerator[Any, None]:
+        yield mock_collection
+
+    with patch.object(docsearch, "_atenant_context", fake_tenant_context):
+        with caplog.at_level(logging.ERROR):
+            with pytest.raises(WeaviateInsertManyAllFailedError):
+                await docsearch.aadd_texts(["bad one", "bad two"])
+
+
+@pytest.mark.asyncio
 async def test_max_marginal_relevance_without_embeddings(
     mock_weaviate_client: MagicMock,
 ) -> None:
