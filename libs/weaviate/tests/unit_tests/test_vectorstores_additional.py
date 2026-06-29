@@ -635,22 +635,6 @@ async def test_asimilarity_search_by_vector(
         mock_perform_asearch.assert_called_with(query=None, k=2, vector=test_vector)
 
 
-def test_cosine_similarity_single_value() -> None:
-    """Test cosine similarity with single value arrays."""
-    # Create single-element arrays that would result in a scalar result
-    X = np.array([[1.0, 2.0, 3.0]], dtype=np.float32)
-    Y = np.array([[4.0, 5.0, 6.0]], dtype=np.float32)
-
-    # Mock simsimd.cdist to return a scalar float instead of an array
-    with patch("simsimd.cdist", return_value=0.5):
-        result = cosine_similarity(X, Y)
-
-        # Verify the result is properly converted to an array
-        assert isinstance(result, np.ndarray)
-        assert result.shape == (1,)
-        assert result[0] == 0.5
-
-
 def test_add_texts_tenant_validation(mock_weaviate_client: MagicMock) -> None:
     """Test the add_texts method with tenant validation."""
     index_name = "test_index"

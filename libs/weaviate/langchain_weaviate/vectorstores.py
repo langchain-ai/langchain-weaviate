@@ -137,8 +137,6 @@ class WeaviateVectorStore(VectorStore):
         client_async: Optional[weaviate.WeaviateAsyncClient] = None,
     ):
         """Initialize with Weaviate client."""
-        if not isinstance(client, weaviate.WeaviateClient):
-            raise TypeError("client must be an instance of WeaviateClient")
         if client_async is not None and not isinstance(
             client_async, weaviate.WeaviateAsyncClient
         ):
