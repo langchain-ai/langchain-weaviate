@@ -12,12 +12,17 @@ logger = logging.getLogger(__name__)
 Matrix = Union[List[List[float]], List[np.ndarray], np.ndarray]
 
 # ---- Backend selection: try simsimd -> scipy.cdist -> numpy fallback ----
+# Which branch runs depends on whether the optional `simsimd` binary is installed
+# in the current environment, so the simsimd-success path cannot be covered when
+# simsimd is absent. Exempt it from coverage so the 100% gate does not depend on
+# the presence of an optional dependency. The scipy/numpy fallback branches remain
+# covered via tests/unit_tests/test_math_simsimd_fallback.py.
 _simsimd_available = False
 try:
     import simsimd  # type: ignore
 
-    _simsimd_available = True
-    _cdist_impl = simsimd.cdist  # type: ignore[assignment]
+    _simsimd_available = True  # pragma: no cover
+    _cdist_impl = simsimd.cdist  # type: ignore[assignment]  # pragma: no cover
 except Exception:
     # Could be ImportError or OSError (binary incompatibility)
     _simsimd_available = False
