@@ -814,37 +814,44 @@ async def test_ingest_bad_documents(
     index_name = f"TestIndex_{uuid.uuid4().hex}"
     text_key = "page_content"
 
+    good_doc_uuid, bad_doc_uuid = uuids
+
     with caplog.at_level(logging.ERROR):
-        _ = await WeaviateVectorStore.afrom_documents(
-            documents=docs,
-            embedding=consistent_embedding,
-            client=weaviate_client,
-            client_async=weaviate_client_async,
-            index_name=index_name,
-            text_key=text_key,
-            uuids=uuids,
-        )
+        # A partial batch failure is surfaced as a weaviate-native error rather
+        # than silently dropping the bad object (see aadd_texts contract).
+        with pytest.raises(weaviate.exceptions.WeaviateBatchError) as exc_info:
+            _ = await WeaviateVectorStore.afrom_documents(
+                documents=docs,
+                embedding=consistent_embedding,
+                client=weaviate_client,
+                client_async=weaviate_client_async,
+                index_name=index_name,
+                text_key=text_key,
+                uuids=uuids,
+            )
 
-        good_doc_uuid, bad_doc_uuid = uuids
+    # the bad doc should be reported, the good one should not
+    assert str(bad_doc_uuid) in str(exc_info.value)
+    assert "_additional" in str(exc_info.value)
+    assert "reserved property name" in str(exc_info.value)
+    assert str(good_doc_uuid) not in str(exc_info.value)
 
-        # the bad doc should generate a log message
-        # Use a more flexible pattern that will match error messages
-        # regardless of the exact format
-        assert str(bad_doc_uuid) in caplog.text
-        assert "_additional" in caplog.text
-        assert "reserved property name" in caplog.text
-        assert good_doc_uuid not in caplog.text
+    # the bad doc should also generate a log message
+    assert str(bad_doc_uuid) in caplog.text
+    assert "_additional" in caplog.text
+    assert "reserved property name" in caplog.text
+    assert str(good_doc_uuid) not in caplog.text
 
-        # the good doc should still be ingested
-        result = await weaviate_client_async.collections.get(
-            index_name
-        ).aggregate.over_all(total_count=True)
-        total_docs = result.total_count
-        assert total_docs == 1
-        doc = await weaviate_client_async.collections.get(
-            index_name
-        ).query.fetch_object_by_id(good_doc_uuid)
-        assert doc is not None
+    # the good doc should still be ingested despite the raised error
+    result = await weaviate_client_async.collections.get(index_name).aggregate.over_all(
+        total_count=True
+    )
+    total_docs = result.total_count
+    assert total_docs == 1
+    doc = await weaviate_client_async.collections.get(
+        index_name
+    ).query.fetch_object_by_id(good_doc_uuid)
+    assert doc is not None
 
 
 @pytest.mark.parametrize("auto_limit, expected_num_docs", [(0, 4), (1, 3)])
