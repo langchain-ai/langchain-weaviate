@@ -314,3 +314,35 @@ def test_vectorstore_with_multi_tenancy_bool_false() -> None:
 
     # Should create config with multi-tenancy disabled
     assert vectorstore.schema["MultiTenancyConfig"]["enabled"] is False
+
+
+def test_add_texts_raises_error_on_failed_objects() -> None:
+    """Test that add_texts raises when batch operations fail.
+
+    Here the single object fails (all-failed), so add_texts raises the
+    weaviate-native ``WeaviateInsertManyAllFailedError`` instead of silently
+    returning ids for objects that were never stored.
+    """
+    from unittest.mock import MagicMock, Mock
+
+    from weaviate.exceptions import WeaviateInsertManyAllFailedError
+
+    mock_client = MagicMock()
+    mock_client.collections.exists.return_value = True
+    mock_config = mock_client.collections.get.return_value.config.get.return_value
+    mock_config.multi_tenancy_config.enabled = False
+
+    # Mock failed batch object
+    failed_obj = Mock()
+    failed_obj.original_uuid = "test-uuid-123"
+    failed_obj.message = "Test error message"
+    mock_client.batch.failed_objects = [failed_obj]
+
+    vectorstore = WeaviateVectorStore(
+        client=mock_client,
+        index_name="TestClass",
+        text_key="text",
+    )
+
+    with pytest.raises(WeaviateInsertManyAllFailedError):
+        vectorstore.add_texts(["test text"])
