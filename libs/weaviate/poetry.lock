@@ -3606,4 +3606,4 @@ simsimd = ["simsimd"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "1b87ecfb636250ab386daad2020f614a0708b1f5d38d6e3453a6d0ce58887f4b"
+content-hash = "5cf6d9972a5dc8b39bc74c4783cd850ac890da3dc10702104aff3323b49c23f8"
